@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Transparent bridge: The Android 12+ OS aggressively overrides padding on raster images.
+         By making this transparent, we eliminate the botched Frame 1 entirely. -->
+    <item android:drawable="@android:color/transparent" />
+</layer-list>

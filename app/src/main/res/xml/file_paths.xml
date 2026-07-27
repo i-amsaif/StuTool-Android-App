@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <external-files-path name="my_documents" path="Documents/" />
+    <cache-path name="my_cache" path="/" />
+    <cache-path name="resume_pdf_cache" path="resume_pdf/" />
+    <cache-path name="camera_images" path="camera/" />
+</paths>
