@@ -1,5 +1,7 @@
 package com.stutool.stutool.navigation
 
+import androidx.compose.ui.platform.LocalContext
+
 import androidx.compose.animation.*
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -103,6 +105,7 @@ private val BOTTOM_BAR_ROUTES = listOf(
 // render while ANY of these routes is still visible (including during animations).
 private val SPLASH_ROUTES = setOf(
     "splash_screen",
+    "onboarding",              // First-launch onboarding
     Screen.Resume.route,       // ResumeSplashScreen entry
     "resume_exit_splash"       // ResumeSplashScreen exit
 )
@@ -222,12 +225,19 @@ fun AppNavigation(
             ) {
             // ── Splash Screen ──
             composable("splash_screen") {
+                val context = LocalContext.current
                 com.stutool.stutool.ui.screens.SplashScreen(
                     onSplashComplete = {
                         val target = if (initialPdfUriEncoded != null) {
+                            // External PDF intent always bypasses onboarding
                             "reader_screen/$initialPdfUriEncoded"
                         } else {
-                            Screen.Home.route
+                            val prefs = com.stutool.stutool.data.local.ThemePreferences.getInstance(context)
+                            if (prefs.isOnboardingComplete()) {
+                                Screen.Home.route
+                            } else {
+                                "onboarding"
+                            }
                         }
                         navController.navigate(target) {
                             popUpTo("splash_screen") { inclusive = true }
@@ -236,8 +246,38 @@ fun AppNavigation(
                 )
             }
 
-            // ── Main Tab Routes ──
-            composable(Screen.Home.route) {
+            // ── Onboarding (first-launch or replay from Settings) ──
+            // Exit transition uses a slow crossfade so Home dissolves in seamlessly.
+            composable(
+                "onboarding",
+                enterTransition = { fadeIn(tween(350, easing = FastOutSlowInEasing)) },
+                exitTransition = {
+                    fadeOut(tween(420, easing = FastOutSlowInEasing))
+                },
+                popEnterTransition = { fadeIn(tween(300, easing = FastOutSlowInEasing)) },
+                popExitTransition = {
+                    fadeOut(tween(350, easing = FastOutSlowInEasing))
+                }
+            ) {
+                val context = LocalContext.current
+                com.stutool.stutool.ui.screens.OnboardingScreen(
+                    onComplete = {
+                        com.stutool.stutool.data.local.ThemePreferences.getInstance(context)
+                            .setOnboardingComplete()
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo("onboarding") { inclusive = true }
+                        }
+                    }
+                )
+            }
+
+            composable(
+                Screen.Home.route,
+                enterTransition = {
+                    // From onboarding: smooth dissolve-in matching the onboarding fade-out
+                    fadeIn(tween(400, easing = FastOutSlowInEasing))
+                }
+            ) {
                 HomeScreen(navController)
             }
 

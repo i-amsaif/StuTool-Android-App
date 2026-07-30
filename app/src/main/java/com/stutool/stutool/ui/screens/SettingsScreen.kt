@@ -106,8 +106,19 @@ fun SettingsScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // ── Appearance ───────────────────────────────────────────
+            // ── General ──────────────────────────────────────────────
             item { Spacer(modifier = Modifier.height(4.dp)) }
+            item { SectionHeader("General") }
+            item {
+                SettingsClickableItem(
+                    title = "View Introduction Again",
+                    subtitle = "Replay the onboarding walkthrough",
+                    onClick = { navController.navigate("onboarding") }
+                )
+            }
+
+            // ── Appearance ───────────────────────────────────────────
+            item { Spacer(modifier = Modifier.height(8.dp)) }
             item { SectionHeader("Appearance") }
             item {
                 SettingsToggleItem(

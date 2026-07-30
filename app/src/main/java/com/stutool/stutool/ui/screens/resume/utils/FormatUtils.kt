@@ -9,8 +9,14 @@ object FormatUtils {
     fun formatName(input: String): String {
         return input.split(" ").joinToString(" ") { word ->
             if (word.isEmpty()) "" else {
-                word.lowercase(Locale.ROOT).replaceFirstChar {
-                    if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString()
+                if (word.any { it.isUpperCase() }) {
+                    // Rules 2, 3, 4: Preserve acronyms, mixed case, and manual capitals
+                    word 
+                } else {
+                    // Rule 1: Normal text (completely lowercase) -> Title Case
+                    word.replaceFirstChar {
+                        if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString()
+                    }
                 }
             }
         }

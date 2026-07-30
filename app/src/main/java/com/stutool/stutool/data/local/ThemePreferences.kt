@@ -36,6 +36,14 @@ class ThemePreferences(context: Context) {
         _themeFlow.value = isDarkMode
     }
 
+    // ── Onboarding ────────────────────────────────────────────────────────
+    fun isOnboardingComplete(): Boolean =
+        prefs.getBoolean(KEY_ONBOARDING_COMPLETE, false)
+
+    fun setOnboardingComplete() {
+        prefs.edit().putBoolean(KEY_ONBOARDING_COMPLETE, true).apply()
+    }
+
     // ── Save Location ────────────────────────────────────────────────────
     private val _saveLocationFlow = MutableStateFlow(getSaveLocation())
     val saveLocationFlow: StateFlow<String?> = _saveLocationFlow
@@ -57,6 +65,7 @@ class ThemePreferences(context: Context) {
         private const val PREFS_NAME = "theme_prefs"
         private const val KEY_IS_DARK_MODE = "is_dark_mode"
         private const val KEY_SAVE_LOCATION = "save_location"
+        private const val KEY_ONBOARDING_COMPLETE = "onboarding_complete"
 
         /** Default output folder path: Documents/StuTool */
         val DEFAULT_SAVE_DIR: File
