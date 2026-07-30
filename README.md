@@ -13,7 +13,14 @@ StuTool is a comprehensive productivity application designed for students and pr
 ## Screenshots
 
 <!-- Placeholder for screenshots -->
-> *Screenshots coming soon...*
+<h2 align="center">📸 Screenshots</h2>
+
+<p align="center">
+  <img src="images/stutoolart1.png" width="220" alt="StuTool Screenshot 1"/>
+  <img src="images/stutoolart2.png" width="220" alt="StuTool Screenshot 2"/>
+  <img src="images/stutoolart3.png" width="220" alt="StuTool Screenshot 3"/>
+  <img src="images/stutoolart4.png" width="220" alt="StuTool Screenshot 4"/>
+</p>
 
 ## Tech Stack
 
