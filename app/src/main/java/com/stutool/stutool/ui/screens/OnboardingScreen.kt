@@ -9,6 +9,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.zIndex
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -40,7 +41,7 @@ import kotlinx.coroutines.launch
 
 private const val TOTAL_PAGES = 5
 
-// ── Responsive helpers ───────────────────────────────────────────────────────
+// â”€â”€ Responsive helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 private enum class ScreenBucket { COMPACT, NORMAL, LARGE }
 
@@ -54,7 +55,7 @@ private fun screenBucket(): ScreenBucket {
     }
 }
 
-// ── Main Onboarding Screen ───────────────────────────────────────────────────
+// â”€â”€ Main Onboarding Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,12 +80,13 @@ fun OnboardingScreen(onComplete: () -> Unit) {
             .background(backgroundColor)
             .systemBarsPadding()
     ) {
-        // ── Top bar: Skip button ─────────────────────────────────────────
+        // â”€â”€ Top bar: Skip button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         AnimatedVisibility(
             visible = currentPage < TOTAL_PAGES - 1,
             enter = fadeIn(tween(200)),
             exit = fadeOut(tween(200)),
             modifier = Modifier
+                .zIndex(1f)
                 .align(Alignment.TopEnd)
                 .padding(top = 8.dp, end = 8.dp)
         ) {
@@ -98,7 +100,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
             }
         }
 
-        // ── Pager ────────────────────────────────────────────────────────
+        // â”€â”€ Pager â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         HorizontalPager(
             state = pagerState,
             modifier = Modifier
@@ -114,7 +116,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
             }
         }
 
-        // ── Bottom navigation area ───────────────────────────────────────
+        // â”€â”€ Bottom navigation area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -243,7 +245,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
     }
 }
 
-// ── Page Indicators (animated Box composables + spring physics) ──────────────
+// â”€â”€ Page Indicators (animated Box composables + spring physics) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @Composable
 private fun PageIndicators(totalPages: Int, currentPage: Int) {
@@ -279,11 +281,11 @@ private fun PageIndicators(totalPages: Int, currentPage: Int) {
     }
 }
 
-// ── Page 1: Welcome ──────────────────────────────────────────────────────────
+// â”€â”€ Page 1: Welcome â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @Composable
 private fun WelcomePage(isDark: Boolean, bucket: ScreenBucket) {
-    // Staggered entrance: logo → accent → text
+    // Staggered entrance: logo â†’ accent â†’ text
     var logoVisible by remember { mutableStateOf(false) }
     var textVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
@@ -398,7 +400,7 @@ private fun WelcomePage(isDark: Boolean, bucket: ScreenBucket) {
     }
 }
 
-// ── Page 2: PDF Tools ────────────────────────────────────────────────────────
+// â”€â”€ Page 2: PDF Tools â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @Composable
 private fun PdfToolsPage(isDark: Boolean, bucket: ScreenBucket) {
@@ -416,7 +418,7 @@ private fun PdfToolsPage(isDark: Boolean, bucket: ScreenBucket) {
     )
 }
 
-// ── Page 3: PDF Viewer & Scanner ─────────────────────────────────────────────
+// â”€â”€ Page 3: PDF Viewer & Scanner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @Composable
 private fun ViewerScannerPage(isDark: Boolean, bucket: ScreenBucket) {
@@ -434,7 +436,7 @@ private fun ViewerScannerPage(isDark: Boolean, bucket: ScreenBucket) {
     )
 }
 
-// ── Page 4: Resume Builder ───────────────────────────────────────────────────
+// â”€â”€ Page 4: Resume Builder â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @Composable
 private fun ResumeBuilderPage(isDark: Boolean, bucket: ScreenBucket) {
@@ -452,11 +454,11 @@ private fun ResumeBuilderPage(isDark: Boolean, bucket: ScreenBucket) {
     )
 }
 
-// ── Page 5: Ready to Get Started ─────────────────────────────────────────────
+// â”€â”€ Page 5: Ready to Get Started â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @Composable
 private fun GetStartedPage(isDark: Boolean, bucket: ScreenBucket) {
-    // Staggered entrance: icon → title → items → privacy
+    // Staggered entrance: icon â†’ title â†’ items â†’ privacy
     var iconVisible by remember { mutableStateOf(false) }
     var titleVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
@@ -657,7 +659,7 @@ private fun GetStartedPage(isDark: Boolean, bucket: ScreenBucket) {
     }
 }
 
-// ── Shared Feature Page Layout ───────────────────────────────────────────────
+// â”€â”€ Shared Feature Page Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 private data class FeatureItem(
     val icon: ImageVector,
@@ -673,7 +675,7 @@ private fun FeaturePage(
     isDark: Boolean,
     bucket: ScreenBucket
 ) {
-    // Staggered entrance: header → row1 → row2
+    // Staggered entrance: header â†’ row1 â†’ row2
     var headerVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { delay(80); headerVisible = true }
 
@@ -756,7 +758,7 @@ private fun FeaturePage(
 
         Spacer(modifier = Modifier.height(headerToCards))
 
-        // Feature cards in 2×2 grid — staggered per card
+        // Feature cards in 2Ã—2 grid â€” staggered per card
         val chunked = features.chunked(2)
         Column(
             verticalArrangement = Arrangement.spacedBy(cardGap),
@@ -823,7 +825,7 @@ private fun FeaturePage(
     }
 }
 
-// ── Feature Card Component ───────────────────────────────────────────────────
+// â”€â”€ Feature Card Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @Composable
 private fun OnboardingFeatureCard(
@@ -847,7 +849,7 @@ private fun OnboardingFeatureCard(
                 .fillMaxWidth()
                 .padding(innerPadding)
         ) {
-            // Icon container (BrandRed bg, white icon — matching ToolCard pattern)
+            // Icon container (BrandRed bg, white icon â€” matching ToolCard pattern)
             Box(
                 modifier = Modifier
                     .size(iconContainerSize)

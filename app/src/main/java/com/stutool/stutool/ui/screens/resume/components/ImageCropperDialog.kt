@@ -118,8 +118,8 @@ fun ImageCropperDialog(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF111111))
                     .navigationBarsPadding() // FIX: Ensures buttons aren't grounded behind system nav bar
+                    .background(Color(0xFF111111))
                     .padding(16.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically

@@ -101,7 +101,7 @@ private val BOTTOM_BAR_ROUTES = listOf(
     Screen.Tools.route
 )
 
-// Routes that belong to an isolated splash experience — the shell must never
+// Routes that belong to an isolated splash experience â€” the shell must never
 // render while ANY of these routes is still visible (including during animations).
 private val SPLASH_ROUTES = setOf(
     "splash_screen",
@@ -136,7 +136,7 @@ fun AppNavigation(
     // Pre-compute navigation bar padding before Scaffold consumes insets
     val navBarBottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
-    // ── Drawer state (only interactive when TopBar is visible) ───────────
+    // â”€â”€ Drawer state (only interactive when TopBar is visible) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -162,7 +162,7 @@ fun AppNavigation(
     ) {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        contentWindowInsets = WindowInsets.systemBars, // Root handles all insets
+        contentWindowInsets = if (showTopBar || showBottomBar) WindowInsets.systemBars else WindowInsets(0.dp), // Root handles all insets
         topBar = {
             if (showTopBar) {
                 TopBar(
@@ -187,7 +187,7 @@ fun AppNavigation(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(
-                        top = innerPadding.calculateTopPadding(),
+                        top = if (showTopBar) innerPadding.calculateTopPadding() else 0.dp,
                         bottom = 0.dp
                     ),
                 enterTransition = {
@@ -223,7 +223,7 @@ fun AppNavigation(
                     )
                 }
             ) {
-            // ── Splash Screen ──
+            // â”€â”€ Splash Screen â”€â”€
             composable("splash_screen") {
                 val context = LocalContext.current
                 com.stutool.stutool.ui.screens.SplashScreen(
@@ -246,7 +246,7 @@ fun AppNavigation(
                 )
             }
 
-            // ── Onboarding (first-launch or replay from Settings) ──
+            // â”€â”€ Onboarding (first-launch or replay from Settings) â”€â”€
             // Exit transition uses a slow crossfade so Home dissolves in seamlessly.
             composable(
                 "onboarding",
@@ -394,7 +394,7 @@ fun AppNavigation(
                 )
             }
 
-            // ── Resume Builder (Full screen Editor) ──
+            // â”€â”€ Resume Builder (Full screen Editor) â”€â”€
             composable(Screen.ResumeBuilder.route) {
                 ResumeBuilderScreen(onNavigateBack = {
                     navController.navigate("resume_exit_splash") {
@@ -404,7 +404,7 @@ fun AppNavigation(
                 })
             }
 
-            // ── Resume Exit Splash (closing transition) ──
+            // â”€â”€ Resume Exit Splash (closing transition) â”€â”€
             composable("resume_exit_splash") {
                 ResumeSplashScreen(
                     animate = true,
@@ -417,14 +417,14 @@ fun AppNavigation(
                 )
             }
 
-            // ── Tool Routes (full-screen, respect NavHost padding) ──
+            // â”€â”€ Tool Routes (full-screen, respect NavHost padding) â”€â”€
             composable(Screen.MergePdf.route) { MergePdfScreen(navController) }
             composable(Screen.ImageToPdf.route) { ImageToPdfScreen(navController) }
             composable(Screen.PagesPerSheet.route) { PagesPerSheetScreen(navController) }
             composable(Screen.ExtractPages.route) { ExtractPagesScreen(navController) }
             composable(Screen.CompressPdf.route) { CompressPdfScreen(navController) }
 
-            // ── PDF Reader (full-screen) ──
+            // â”€â”€ PDF Reader (full-screen) â”€â”€
             composable(
                 route = "reader_screen/{uri}",
                 arguments = listOf(navArgument("uri") { type = NavType.StringType })

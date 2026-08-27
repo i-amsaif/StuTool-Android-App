@@ -68,15 +68,21 @@ class ResumeViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun loadData() {
-        val savedJson = prefs.getString("resume_draft", null)
-        val savedTemplate = prefs.getString("resume_template", "minimal")
-        if (savedJson != null) {
-            _uiState.update {
-                it.copy(
-                    resumeData = ResumeData.fromJson(savedJson),
-                    selectedTemplate = savedTemplate ?: "minimal"
-                )
+        try {
+            val savedJson = prefs.getString("resume_draft", null)
+            val savedTemplate = prefs.getString("resume_template", "minimal")
+            if (savedJson != null) {
+                _uiState.update {
+                    it.copy(
+                        resumeData = ResumeData.fromJson(savedJson),
+                        selectedTemplate = savedTemplate ?: "minimal"
+                    )
+                }
             }
+        } catch (e: Exception) {
+            android.util.Log.e("ResumeVM", "Failed to load saved resume data", e)
+            // Retain default empty ResumeData â€” user data is preserved in prefs
+            // for manual recovery if needed
         }
     }
 
@@ -340,7 +346,7 @@ class ResumeViewModel(application: Application) : AndroidViewModel(application) 
     fun addProject() {
         _uiState.update { state ->
             val list = state.resumeData.projects.toMutableList()
-            list.add(Project())
+            list.add(Project(links = listOf("")))
             state.copy(resumeData = state.resumeData.copy(projects = list))
         }
         scheduleSave()
@@ -352,11 +358,52 @@ class ResumeViewModel(application: Application) : AndroidViewModel(application) 
                 if (it.id == id) {
                     when (field) {
                         "name" -> it.copy(name = formatName(value))
-                        "link" -> it.copy(link = value)
                         "description" -> it.copy(description = formatSentence(value))
                         else -> it
                     }
                 } else it
+            }
+            state.copy(resumeData = state.resumeData.copy(projects = list))
+        }
+        scheduleSave()
+    }
+
+    fun addProjectLink(id: String) {
+        _uiState.update { state ->
+            val list = state.resumeData.projects.map { proj ->
+                if (proj.id == id) {
+                    val linksList = proj.links.toMutableList()
+                    linksList.add("")
+                    proj.copy(links = linksList)
+                } else proj
+            }
+            state.copy(resumeData = state.resumeData.copy(projects = list))
+        }
+        scheduleSave()
+    }
+
+    fun updateProjectLink(id: String, index: Int, url: String) {
+        _uiState.update { state ->
+            val list = state.resumeData.projects.map { proj ->
+                if (proj.id == id && index in proj.links.indices) {
+                    val linksList = proj.links.toMutableList()
+                    linksList[index] = url
+                    proj.copy(links = linksList)
+                } else proj
+            }
+            state.copy(resumeData = state.resumeData.copy(projects = list))
+        }
+        scheduleSave()
+    }
+
+    fun removeProjectLink(id: String, index: Int) {
+        _uiState.update { state ->
+            val list = state.resumeData.projects.map { proj ->
+                if (proj.id == id && index in proj.links.indices) {
+                    val linksList = proj.links.toMutableList()
+                    linksList.removeAt(index)
+                    proj.copy(links = linksList)
+                } else proj
             }
             state.copy(resumeData = state.resumeData.copy(projects = list))
         }

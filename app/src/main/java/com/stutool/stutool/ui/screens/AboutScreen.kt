@@ -87,7 +87,7 @@ fun AboutScreen(navController: NavController) {
                     "Document Scanner (clean camera scan)",
                     "Resume Builder (ATS-friendly)",
                     "PDF Tools (merge, compress, extract, image to pdf, pages per sheet)",
-                    "PDF Viewer (smooth and local)",
+                    "PDF Viewer (continuous scroll, local text extraction)",
                     "AI Enhance (career objective improvement)"
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

@@ -46,6 +46,10 @@ import java.util.*
 
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Print
+import androidx.compose.material.icons.filled.DeleteOutline
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -109,7 +113,7 @@ fun PdfLibraryScreen(
         }
     }
 
-    // ── Permission error dialog ──
+    // â”€â”€ Permission error dialog â”€â”€
     permissionErrorDialog?.let { errorMsg ->
         AlertDialog(
             onDismissRequest = { permissionErrorDialog = null },
@@ -273,6 +277,80 @@ fun PdfLibraryScreen(
                             },
                             onRemove = {
                                 viewModel.deleteRecentPdf(pdf.uri)
+                            },
+                            onShare = {
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    val originalUri = Uri.parse(pdf.uri)
+                                    kotlinx.coroutines.withContext(Dispatchers.Main) {
+                                        com.stutool.stutool.utils.PdfShareUtils.sharePdf(
+                                            context = context,
+                                            localCopyPath = pdf.localCopyPath,
+                                            originalUri = originalUri,
+                                            activeTempPdfFile = null,
+                                            displayName = pdf.name
+                                        )
+                                    }
+                                }
+                            },
+                            onPrint = {
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    val originalUri = Uri.parse(pdf.uri)
+                                    val printFile = com.stutool.stutool.utils.PdfShareUtils.resolveReadableFile(
+                                        context = context,
+                                        localCopyPath = pdf.localCopyPath,
+                                        originalUri = originalUri,
+                                        activeTempPdfFile = null,
+                                        displayName = pdf.name,
+                                        cacheSubDir = "print_cache"
+                                    )
+                                    kotlinx.coroutines.withContext(Dispatchers.Main) {
+                                        if (printFile == null || !printFile.exists()) {
+                                            com.stutool.stutool.utils.PdfShareUtils.showError(
+                                                context, "Cannot print: the document source is unavailable."
+                                            )
+                                            return@withContext
+                                        }
+                                        val printManager = context.getSystemService(
+                                            android.content.Context.PRINT_SERVICE
+                                        ) as? android.print.PrintManager ?: return@withContext
+                                        val jobName = com.stutool.stutool.utils.PdfShareUtils
+                                            .sanitizeFilename(pdf.name).removeSuffix(".pdf")
+                                        val adapter = object : android.print.PrintDocumentAdapter() {
+                                            override fun onLayout(
+                                                old: android.print.PrintAttributes?,
+                                                new: android.print.PrintAttributes?,
+                                                cancel: android.os.CancellationSignal?,
+                                                cb: LayoutResultCallback?,
+                                                extras: android.os.Bundle?
+                                            ) {
+                                                if (cancel?.isCanceled == true) { cb?.onLayoutCancelled(); return }
+                                                cb?.onLayoutFinished(
+                                                    android.print.PrintDocumentInfo.Builder(jobName)
+                                                        .setContentType(android.print.PrintDocumentInfo.CONTENT_TYPE_DOCUMENT)
+                                                        .setPageCount(android.print.PrintDocumentInfo.PAGE_COUNT_UNKNOWN)
+                                                        .build(), true
+                                                )
+                                            }
+                                            override fun onWrite(
+                                                pages: Array<out android.print.PageRange>?,
+                                                dest: android.os.ParcelFileDescriptor?,
+                                                cancel: android.os.CancellationSignal?,
+                                                cb: WriteResultCallback?
+                                            ) {
+                                                if (cancel?.isCanceled == true) { cb?.onWriteCancelled(); return }
+                                                try {
+                                                    java.io.FileInputStream(printFile).use { i ->
+                                                        android.os.ParcelFileDescriptor.AutoCloseOutputStream(dest).use { o -> i.copyTo(o) }
+                                                    }
+                                                    cb?.onWriteFinished(arrayOf(android.print.PageRange.ALL_PAGES))
+                                                } catch (e: Exception) {
+                                                    cb?.onWriteFailed(e.message)
+                                                }
+                                            }
+                                        }
+                                        printManager.print(jobName, adapter, null)
+                                    }
+                                }
                             }
                         )
                     }
@@ -295,7 +373,7 @@ private fun resolveAccessibleUri(pdf: RecentPdf, context: android.content.Contex
         val file = java.io.File(uri.path ?: return null)
         return if (file.exists()) pdf.uri else fallbackToLocalCopy(pdf)
     }
-    // For content:// URIs, attempt to open a descriptor — SecurityException = permission gone
+    // For content:// URIs, attempt to open a descriptor â€” SecurityException = permission gone
     return try {
         context.contentResolver.openFileDescriptor(uri, "r")?.close()
         pdf.uri // original still accessible
@@ -319,7 +397,9 @@ private fun fallbackToLocalCopy(pdf: RecentPdf): String? {
 fun RecentPdfItem(
     pdf: RecentPdf,
     onClick: () -> Unit,
-    onRemove: () -> Unit
+    onRemove: () -> Unit,
+    onShare: () -> Unit,
+    onPrint: () -> Unit
 ) {
     val glass = LocalGlassTokens.current
     var showMenu by remember { mutableStateOf(false) }
@@ -363,7 +443,7 @@ fun RecentPdfItem(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "•",
+                        text = "â€¢",
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                         fontSize = 12.sp
                     )
@@ -376,7 +456,7 @@ fun RecentPdfItem(
                     if (pdf.pageCount != null) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "•",
+                            text = "â€¢",
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                             fontSize = 12.sp
                         )
@@ -409,21 +489,98 @@ fun RecentPdfItem(
                 DropdownMenu(
                     expanded = showMenu,
                     onDismissRequest = { showMenu = false },
-                    modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                    modifier = Modifier
+                        .background(MaterialTheme.colorScheme.surfaceContainer)
+                        .widthIn(min = 200.dp)
                 ) {
+                    // â”€â”€ Open â”€â”€
                     DropdownMenuItem(
-                        text = { Text("Open", color = MaterialTheme.colorScheme.onSurface) },
-                        onClick = {
-                            showMenu = false
-                            onClick()
-                        }
+                        text = {
+                            Text(
+                                "Open",
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.OpenInNew,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        onClick = { showMenu = false; onClick() },
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)
                     )
+                    // â”€â”€ Share â”€â”€
                     DropdownMenuItem(
-                        text = { Text("Remove from Recent", color = MaterialTheme.colorScheme.error) },
-                        onClick = {
-                            showMenu = false
-                            onRemove()
-                        }
+                        text = {
+                            Text(
+                                "Share",
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Share,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        onClick = { showMenu = false; onShare() },
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)
+                    )
+                    // â”€â”€ Print â”€â”€
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                "Print",
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Print,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        onClick = { showMenu = false; onPrint() },
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)
+                    )
+                    // â”€â”€ Divider before destructive action â”€â”€
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+                    // â”€â”€ Remove from Recent (destructive) â”€â”€
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                "Remove from Recent",
+                                color = MaterialTheme.colorScheme.error,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.DeleteOutline,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        onClick = { showMenu = false; onRemove() },
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)
                     )
                 }
             }

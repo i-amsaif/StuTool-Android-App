@@ -271,7 +271,7 @@ fun ResumeForm(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        "Keep it short (2–3 lines). Focus on skills and goals relevant to the role.",
+                        "Keep it short (2â€“3 lines). Focus on skills and goals relevant to the role.",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp
                     )
@@ -300,7 +300,7 @@ fun ResumeForm(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    "Uses AI • Internet required • Start with a rough objective",
+                                    "Uses AI â€¢ Internet required â€¢ Start with a rough objective",
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                                     fontSize = 10.sp,
                                     lineHeight = 14.sp
@@ -453,7 +453,39 @@ fun ResumeForm(
                             onDelete = { viewModel.removeProject(proj.id) }
                         ) {
                             DarkFormInput("Project Name", "Portfolio API", proj.name) { viewModel.updateProject(proj.id, "name", it) }
-                            DarkFormInput("Link (URL)", "https://...", proj.link) { viewModel.updateProject(proj.id, "link", it) }
+                            proj.links.forEachIndexed { linkIndex, linkUrl ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        DarkFormInput(
+                                            label = "Link (URL)",
+                                            placeholder = "https://...",
+                                            value = linkUrl,
+                                            onValueChange = { viewModel.updateProjectLink(proj.id, linkIndex, it) }
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = { viewModel.removeProjectLink(proj.id, linkIndex) },
+                                        modifier = Modifier.padding(start = 8.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "Remove Link",
+                                            tint = Color.Red.copy(alpha = 0.7f)
+                                        )
+                                    }
+                                }
+                            }
+                            TextButton(
+                                onClick = { viewModel.addProjectLink(proj.id) },
+                                modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Add Link", fontSize = 12.sp)
+                            }
                             DarkFormInput("Description", "- Built a REST API...", proj.description, singleLine = false, lines = 3) { viewModel.updateProject(proj.id, "description", it) }
                         }
                     }

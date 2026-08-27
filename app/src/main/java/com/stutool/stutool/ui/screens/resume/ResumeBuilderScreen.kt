@@ -104,6 +104,7 @@ fun ResumeBuilderScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.surface)
+                    .statusBarsPadding()
                     .padding(horizontal = 8.dp, vertical = 6.dp)
             ) {
                 // Back Button (Left)
@@ -382,7 +383,7 @@ fun ResumeBuilderScreen(
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
-                                "Generating PDF…",
+                                "Generating PDFâ€¦",
                                 color = MaterialTheme.colorScheme.onBackground,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium

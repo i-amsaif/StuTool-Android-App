@@ -71,7 +71,7 @@ fun PrivacyPolicyScreen(navController: NavController) {
                 PolicyBulletList(
                     listOf(
                         "No account or sign-in required",
-                        "All PDF processing, generation, and Document Scanner tasks occur offline and locally on your device",
+                        "All PDF processing, text extraction, generation, and Document Scanner tasks occur offline and locally on your device",
                         "Resume Builder data is processed locally",
                         "No personal data or documents are stored on remote servers"
                     )
@@ -177,7 +177,7 @@ private fun PolicyBulletList(items: List<String>) {
         items.forEach { item ->
             Row {
                 Text(
-                    text = "•",
+                    text = "â€¢",
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(end = 8.dp)

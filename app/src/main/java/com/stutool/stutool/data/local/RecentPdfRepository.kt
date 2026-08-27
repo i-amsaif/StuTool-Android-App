@@ -22,9 +22,9 @@ class RecentPdfRepository(private val appContext: Context) {
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // Public API
-    // ─────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     fun getRecentPdfs(): List<RecentPdf> {
         val jsonString = prefs.getString(KEY_RECENT_PDFS, null) ?: return emptyList()
@@ -32,8 +32,12 @@ class RecentPdfRepository(private val appContext: Context) {
         try {
             val jsonArray = JSONArray(jsonString)
             for (i in 0 until jsonArray.length()) {
-                val jsonObject = jsonArray.getJSONObject(i)
-                list.add(RecentPdf.fromJson(jsonObject))
+                try {
+                    val jsonObject = jsonArray.getJSONObject(i)
+                    list.add(RecentPdf.fromJson(jsonObject))
+                } catch (itemEx: Exception) {
+                    android.util.Log.w("RecentPdfRepo", "Skipping corrupted recent PDF entry at index $i", itemEx)
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -50,10 +54,10 @@ class RecentPdfRepository(private val appContext: Context) {
      * Saves a recent PDF, deduplicating by [RecentPdf.fileIdentity].
      *
      * If an entry with the same identity already exists:
-     *   – its timestamp is bumped to the new value
-     *   – the URI is updated to the latest one (which has the freshest permission)
-     *   – isFavorite and localCopyPath are preserved from the existing entry
-     *   – no duplicate is created
+     *   â€“ its timestamp is bumped to the new value
+     *   â€“ the URI is updated to the latest one (which has the freshest permission)
+     *   â€“ isFavorite and localCopyPath are preserved from the existing entry
+     *   â€“ no duplicate is created
      */
     fun saveRecentPdf(pdf: RecentPdf) {
         android.util.Log.d("PDF_DEBUG", "saveRecentPdf called for URI: ${pdf.uri}")
@@ -135,7 +139,7 @@ class RecentPdfRepository(private val appContext: Context) {
     }
 
     /**
-     * Removes entries whose file is no longer accessible — neither via the
+     * Removes entries whose file is no longer accessible â€” neither via the
      * stored URI nor via a local internal copy. Called by the ViewModel on load.
      * Returns `true` if any entries were removed.
      */
@@ -162,9 +166,9 @@ class RecentPdfRepository(private val appContext: Context) {
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // Internal helpers
-    // ─────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /**
      * Checks whether a recent entry can still be opened from at least one path.
@@ -181,7 +185,7 @@ class RecentPdfRepository(private val appContext: Context) {
             val file = java.io.File(uri.path ?: return false)
             return file.exists()
         }
-        // content:// — probe with openFileDescriptor
+        // content:// â€” probe with openFileDescriptor
         return try {
             appContext.contentResolver.openFileDescriptor(uri, "r")?.close()
             true
@@ -209,7 +213,7 @@ class RecentPdfRepository(private val appContext: Context) {
         val deduplicated = mutableListOf<RecentPdf>()
         val seen = mutableSetOf<String>()
 
-        // List is already sorted by lastOpened desc within groups — take first
+        // List is already sorted by lastOpened desc within groups â€” take first
         for (pdf in normalized) {
             if (pdf.fileIdentity in seen) {
                 // Merge: find the already-kept entry and preserve metadata

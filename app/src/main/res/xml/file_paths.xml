@@ -4,4 +4,8 @@
     <cache-path name="my_cache" path="/" />
     <cache-path name="resume_pdf_cache" path="resume_pdf/" />
     <cache-path name="camera_images" path="camera/" />
+    <!-- Paths for PDF sharing and printing -->
+    <cache-path name="share_cache" path="share_cache/" />
+    <cache-path name="print_cache" path="print_cache/" />
+    <files-path name="pdf_copies" path="pdf_copies/" />
 </paths>

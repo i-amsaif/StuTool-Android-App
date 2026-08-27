@@ -34,9 +34,14 @@ data class RecentPdf(
     companion object {
         fun fromJson(json: org.json.JSONObject): RecentPdf {
             val name = json.getString("name")
+            val uri = json.getString("uri")
+            if (name.isBlank() || uri.isBlank()) {
+                throw org.json.JSONException("Missing or blank essential fields in RecentPdf")
+            }
             val size = json.getLong("size")
+
             return RecentPdf(
-                uri = json.getString("uri"),
+                uri = uri,
                 name = name,
                 size = size,
                 lastOpened = json.getLong("lastOpened"),

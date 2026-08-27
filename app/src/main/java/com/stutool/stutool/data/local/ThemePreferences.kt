@@ -15,7 +15,7 @@ class ThemePreferences(context: Context) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    // ── Theme ────────────────────────────────────────────────────────────
+    // â”€â”€ Theme â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // false = light, true = dark, null = system default
     private val _themeFlow = MutableStateFlow(getThemePreference())
     val themeFlow: StateFlow<Boolean?> = _themeFlow
@@ -36,7 +36,7 @@ class ThemePreferences(context: Context) {
         _themeFlow.value = isDarkMode
     }
 
-    // ── Onboarding ────────────────────────────────────────────────────────
+    // â”€â”€ Onboarding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     fun isOnboardingComplete(): Boolean =
         prefs.getBoolean(KEY_ONBOARDING_COMPLETE, false)
 
@@ -44,7 +44,14 @@ class ThemePreferences(context: Context) {
         prefs.edit().putBoolean(KEY_ONBOARDING_COMPLETE, true).apply()
     }
 
-    // ── Save Location ────────────────────────────────────────────────────
+    fun isPdfGuideComplete(): Boolean =
+        prefs.getBoolean(KEY_PDF_GUIDE_COMPLETE, false)
+
+    fun setPdfGuideComplete() {
+        prefs.edit().putBoolean(KEY_PDF_GUIDE_COMPLETE, true).apply()
+    }
+
+    // â”€â”€ Save Location â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private val _saveLocationFlow = MutableStateFlow(getSaveLocation())
     val saveLocationFlow: StateFlow<String?> = _saveLocationFlow
 
@@ -61,11 +68,33 @@ class ThemePreferences(context: Context) {
         _saveLocationFlow.value = uriString
     }
 
+    // â”€â”€ PDF Viewer Settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    fun getReadingDirection(): Boolean {
+        // true = Vertical, false = Horizontal
+        return prefs.getBoolean(KEY_PDF_READING_DIRECTION, true)
+    }
+
+    fun setReadingDirection(isVertical: Boolean) {
+        prefs.edit().putBoolean(KEY_PDF_READING_DIRECTION, isVertical).apply()
+    }
+
+    fun getContinuousView(): Boolean {
+        return prefs.getBoolean(KEY_CONTINUOUS_VIEW, false)
+    }
+
+    fun setContinuousView(isContinuous: Boolean) {
+        prefs.edit().putBoolean(KEY_CONTINUOUS_VIEW, isContinuous).apply()
+    }
+
     companion object {
         private const val PREFS_NAME = "theme_prefs"
         private const val KEY_IS_DARK_MODE = "is_dark_mode"
         private const val KEY_SAVE_LOCATION = "save_location"
         private const val KEY_ONBOARDING_COMPLETE = "onboarding_complete"
+        private const val KEY_PDF_GUIDE_COMPLETE = "pdf_guide_complete"
+        private const val KEY_PDF_READING_DIRECTION = "pdf_reading_direction"
+        private const val KEY_CONTINUOUS_VIEW = "pdf_continuous_view"
 
         /** Default output folder path: Documents/StuTool */
         val DEFAULT_SAVE_DIR: File

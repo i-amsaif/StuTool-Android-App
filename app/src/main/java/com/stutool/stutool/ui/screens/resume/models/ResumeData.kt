@@ -21,33 +21,33 @@ data class ResumeData(
         if (personal.email.isNotBlank()) score += 5
         if (personal.phoneNumber.isNotBlank()) score += 5
         if (personal.location.isNotBlank()) score += 5
-        
+
         // Objective
         if (careerObjective.isNotBlank() && careerObjective.length > 20) score += 10
-        
+
         // Experience
         if (experience.isNotEmpty()) {
             val validExp = experience.filter { it.company.isNotBlank() && it.position.isNotBlank() }
             score += (validExp.size * 15).coerceAtMost(30)
         }
-        
+
         // Education
         if (education.isNotEmpty()) {
             val validEdu = education.filter { it.institution.isNotBlank() && it.level.isNotBlank() }
             score += (validEdu.size * 10).coerceAtMost(20)
         }
-        
+
         // Projects
         if (projects.isNotEmpty()) {
             val validProj = projects.filter { it.name.isNotBlank() && it.description.isNotBlank() }
             score += (validProj.size * 10).coerceAtMost(10)
         }
-        
+
         // Skills
         if (skills.isNotEmpty()) {
             score += (skills.size * 2).coerceAtMost(10)
         }
-        
+
         return score
     }
 
@@ -60,7 +60,7 @@ data class ResumeData(
             put("phoneNumber", personal.phoneNumber)
             put("location", personal.location)
             put("profileImageUri", personal.profileImageUri)
-            
+
             val linksArray = JSONArray()
             personal.links.forEach { link ->
                 linksArray.put(JSONObject().apply {
@@ -70,7 +70,7 @@ data class ResumeData(
                 })
             }
             put("links", linksArray)
-            
+
             put("dob", personal.dob)
             put("gender", personal.gender)
             put("maritalStatus", personal.maritalStatus)
@@ -113,7 +113,9 @@ data class ResumeData(
             projArray.put(JSONObject().apply {
                 put("id", proj.id)
                 put("name", proj.name)
-                put("link", proj.link)
+                val projLinksArray = JSONArray()
+                proj.links.forEach { projLinksArray.put(it) }
+                put("links", projLinksArray)
                 put("description", proj.description)
             })
         }
@@ -147,7 +149,7 @@ data class ResumeData(
             return try {
                 val json = JSONObject(jsonString)
                 val pJson = json.optJSONObject("personal")
-                
+
                 val linksList = mutableListOf<LinkItem>()
                 val linksArray = pJson?.optJSONArray("links")
                 if (linksArray != null) {
@@ -231,11 +233,32 @@ data class ResumeData(
                 if (projArray != null) {
                     for (i in 0 until projArray.length()) {
                         val obj = projArray.getJSONObject(i)
+                        val oldLink = obj.optString("link", "").trim()
+                        val projLinksList = mutableListOf<String>()
+                        val projLinksArr = obj.optJSONArray("links")
+                        if (projLinksArr != null) {
+                            for (j in 0 until projLinksArr.length()) {
+                                projLinksList.add(projLinksArr.getString(j))
+                            }
+                        } else if (oldLink.isNotBlank()) {
+                            if (!oldLink.contains(" ")) {
+                                projLinksList.add(oldLink)
+                            } else {
+                                val urlRegex = """(https?://[^\s]+|www\.[^\s]+|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}[^\s]*)""".toRegex()
+                                val extracted = urlRegex.findAll(oldLink).map { it.value }.toList()
+                                if (extracted.isNotEmpty()) {
+                                    projLinksList.addAll(extracted)
+                                } else {
+                                    projLinksList.add(oldLink)
+                                }
+                            }
+                        }
+
                         projects.add(
                             Project(
                                 id = obj.optString("id", UUID.randomUUID().toString()),
                                 name = obj.optString("name", ""),
-                                link = obj.optString("link", ""),
+                                links = projLinksList,
                                 description = obj.optString("description", "")
                             )
                         )
@@ -282,10 +305,10 @@ fun ResumeData.formatForExport(): ResumeData {
             .filter { it.isNotBlank() }
             .map { line ->
                 var cleanLine = line
-                while (cleanLine.startsWith("-") || cleanLine.startsWith("•") || cleanLine.startsWith("*")) {
+                while (cleanLine.startsWith("-") || cleanLine.startsWith("â€¢") || cleanLine.startsWith("*")) {
                     cleanLine = cleanLine.substring(1).trim()
                 }
-                "• $cleanLine"
+                "â€¢ $cleanLine"
             }
             .joinToString("\n")
     }
@@ -361,7 +384,7 @@ data class Education(
 data class Project(
     val id: String = UUID.randomUUID().toString(),
     val name: String = "",
-    val link: String = "",
+    val links: List<String> = listOf(""),
     val description: String = ""
 )
 
@@ -408,13 +431,13 @@ val FresherResumeData = ResumeData(
     projects = listOf(
         Project(
             name = "StuTool",
-            link = "github.com/i-amsaif/StuTool",
-            description = "• Built a cross-platform toolkit with a local PDF tool suite and resume builder.\n• Developed in Kotlin with Jetpack Compose."
+            links = listOf("github.com/i-amsaif/StuTool"),
+            description = "â€¢ Built a cross-platform toolkit with a local PDF tool suite and resume builder.\nâ€¢ Developed in Kotlin with Jetpack Compose."
         ),
         Project(
             name = "Finvovo",
-            link = "github.com/i-amsaif/Finvovo",
-            description = "• Developed a Android App for Personal & Business Ledger Management.\n• Developed in Kotlin with Jetpack Compose."
+            links = listOf("github.com/i-amsaif/Finvovo"),
+            description = "â€¢ Developed a Android App for Personal & Business Ledger Management.\nâ€¢ Developed in Kotlin with Jetpack Compose."
         )
     ),
     skills = listOf("React", "Kotlin", "Next.js", "Java", "HTML/CSS"),
@@ -456,21 +479,21 @@ val ExperiencedResumeData = ResumeData(
             position = "Senior Software Engineer",
             startDate = "Mar 2021",
             endDate = "Present",
-            description = "• Led a team of 8 engineers building microservices.\n• Reduced system latency by 40% through Redis caching."
+            description = "â€¢ Led a team of 8 engineers building microservices.\nâ€¢ Reduced system latency by 40% through Redis caching."
         ),
         Experience(
             company = "Infosys Limited",
             position = "Software Engineer",
             startDate = "Jul 2018",
             endDate = "Feb 2021",
-            description = "• Maintained 3 enterprise MERN web applications.\n• Improved API response times by 35%."
+            description = "â€¢ Maintained 3 enterprise MERN web applications.\nâ€¢ Improved API response times by 35%."
         )
     ),
     projects = listOf(
         Project(
             name = "Open Source Analytics Dashboard",
-            link = "github.com/i-amsaif/analytics-dash",
-            description = "• Built a lightweight dashboard used by 500+ developers."
+            links = listOf("github.com/i-amsaif/analytics-dash"),
+            description = "â€¢ Built a lightweight dashboard used by 500+ developers."
         )
     ),
     skills = listOf("React", "Next.js", "Node.js", "TypeScript", "AWS", "MongoDB"),

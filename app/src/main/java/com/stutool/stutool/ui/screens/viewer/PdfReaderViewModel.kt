@@ -111,6 +111,7 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
 
     private var loadingJob: Job? = null
     private var activeTempPdfFile: File? = null
+    fun getActiveTempPdfFile(): File? = activeTempPdfFile
     private val TEMP_PDF_PREFIX = "stutool_tmp_decrypted_"
 
     private val _pdfName = MutableStateFlow<String?>("Document")
@@ -128,14 +129,21 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
     private var saveProgressJob: Job? = null
 
     // --- UX States ---
+    private val themePrefs = com.stutool.stutool.data.local.ThemePreferences.getInstance(application)
+
     private val _backgroundMode = MutableStateFlow(BackgroundMode.Original)
     val backgroundMode: StateFlow<BackgroundMode> = _backgroundMode.asStateFlow()
 
-    private val _readingDirection = MutableStateFlow(ReadingDirection.Vertical)
+    private val _readingDirection = MutableStateFlow(
+        if (themePrefs.getReadingDirection()) ReadingDirection.Vertical else ReadingDirection.Horizontal
+    )
     val readingDirection: StateFlow<ReadingDirection> = _readingDirection.asStateFlow()
 
     private val _isReflowEnabled = MutableStateFlow(false)
     val isReflowEnabled: StateFlow<Boolean> = _isReflowEnabled.asStateFlow()
+
+    private val _isContinuousView = MutableStateFlow(themePrefs.getContinuousView())
+    val isContinuousView: StateFlow<Boolean> = _isContinuousView.asStateFlow()
 
     private val _isPageByPageEnabled = MutableStateFlow(false)
     val isPageByPageEnabled: StateFlow<Boolean> = _isPageByPageEnabled.asStateFlow()
@@ -149,7 +157,7 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
     private val _isTextMode = MutableStateFlow(false)
     val isTextMode: StateFlow<Boolean> = _isTextMode.asStateFlow()
 
-    // ── Search State ──
+    // â”€â”€ Search State â”€â”€
     private val _isSearchActive = MutableStateFlow(false)
     val isSearchActive: StateFlow<Boolean> = _isSearchActive.asStateFlow()
 
@@ -173,7 +181,7 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
 
     private var pdfRenderer: PdfRenderer? = null
     private var fileDescriptor: ParcelFileDescriptor? = null
-    
+
     // Store the content URI for text extraction
     private var currentContentUri: Uri? = null
 
@@ -181,20 +189,20 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
     // Reduced from 8 to 4 to lower native memory pressure without causing Compose recycled bitmap crashes.
     private val bitmapCache = LruCache<String, Bitmap>(4)
 
-    // ── Zoom-level bitmap cache (1x, 2x, 4x) ──
+    // â”€â”€ Zoom-level bitmap cache (1x, 2x, 4x) â”€â”€
     // DO NOT manually recycle on eviction. Compose's RenderNode holds async references to bitmaps.
     // Manual recycling causes "Canvas: trying to use a recycled bitmap" crashes. Rely on GC.
     private val zoomBitmapCache = LruCache<String, Bitmap>(2)
-    
+
     // Cache for extracted text per page (full strings)
     private val textCache = LruCache<Int, String>(10)
-    
+
     // Cache for coordinate-aware layout elements
     private val layoutCache = LruCache<Int, PdfPageLayout>(10)
-    
+
     // PdfRenderer is not thread safe
     private val rendererMutex = Mutex()
-    
+
     // PDFBox document is not thread safe for extraction
     private var activePdfDocument: PDDocument? = null
     private val pdfDocumentMutex = Mutex()
@@ -222,13 +230,13 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
             _errorMessage.value = null
             _isPasswordRequired.value = false
             _passwordErrorMessage.value = null
-            
+
             try {
                 rendererMutex.withLock {
                     closePdfInternal()
                     _currentPdfUri.value = uri
                     _pdfName.value = name ?: "Document"
-                    
+
                     val pfd = context.contentResolver.openFileDescriptor(uri, "r")
                     if (pfd != null) {
                         try {
@@ -238,7 +246,7 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
                             _displayUri.value = uri
                             currentContentUri = uri
                             _pageCount.value = pdfRenderer?.pageCount ?: 0
-                            
+
                             // Initialize PDFBox concurrently without blocking the main renderer
                             launch(Dispatchers.IO) {
                                 pdfDocumentMutex.withLock {
@@ -252,15 +260,15 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
                                     }
                                 }
                             }
-                            
-                            // ── Save to Recent Files ──
+
+                            // â”€â”€ Save to Recent Files â”€â”€
                             val resolvedName = resolveFileName(uri, context) ?: (name ?: "Document")
                             val fileSize = try {
                                 pfd.statSize.takeIf { it > 0 } ?: 0L
                             } catch (_: Exception) { 0L }
                             _pdfName.value = resolvedName
-                            
-                            // ── Persist fallback copy for content:// URIs ──
+
+                            // â”€â”€ Persist fallback copy for content:// URIs â”€â”€
                             // Must happen BEFORE saveRecentPdf so the localCopyPath
                             // is stored immediately. Without it, pruneInaccessibleEntries()
                             // deletes entries whose temp content:// permission has expired
@@ -268,7 +276,7 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
                             val localCopyPath = if (uri.scheme == "content") {
                                 copyUriToInternalStorage(uri, resolvedName, context)
                             } else null
-                            
+
                             repository.saveRecentPdf(
                                 RecentPdf(
                                     uri = uri.toString(),
@@ -281,17 +289,17 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
 
                             val pdfId = computePdfId(uri, resolvedName, fileSize)
                             currentPdfId = pdfId
-                            
+
                             val savedPage = progressRepository.getProgress(pdfId)
                             val maxPage = pdfRenderer?.pageCount ?: 0
                             _restoredPage.value = if (maxPage > 0 && savedPage in 0 until maxPage) savedPage else 0
                             _bookmarks.value = progressRepository.getBookmarks(pdfId)
-                            
+
                             // Check if favorite
                             val recentPdfs = repository.getRecentPdfs()
                             _isFavorite.value = recentPdfs.find { it.uri == uri.toString() }?.isFavorite ?: false
-                            
-                            // ── Pre-render page 0 eagerly ──
+
+                            // â”€â”€ Pre-render page 0 eagerly â”€â”€
                             // Render at screen-density width so it's cached before
                             // the composable asks for it, eliminating first-page lag.
                             val screenWidth = context.resources.displayMetrics.widthPixels
@@ -357,7 +365,7 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
                     // Try PDFBox without password
                     val memorySetting = com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly()
                     PDDocument.load(stream, memorySetting).close()
-                    // If it reaches here without exception, it's NOT encrypted but native failed. 
+                    // If it reaches here without exception, it's NOT encrypted but native failed.
                     // This means it's likely a format error/unsupported feature.
                     _errorMessage.value = "This PDF format is not supported by the native renderer."
                 } catch (e: com.tom_roush.pdfbox.pdmodel.encryption.InvalidPasswordException) {
@@ -378,7 +386,7 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
             android.util.Log.d("PDF_DEBUG", "unlockPdf started")
             _isUnlocking.value = true
             _passwordErrorMessage.value = null
-            
+
             try {
                 // Large file safeguard (> 50MB)
                 context.contentResolver.openFileDescriptor(uri, "r")?.use { pfd ->
@@ -393,30 +401,30 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
                     val document = PDDocument.load(stream, password, memorySetting)
                     document.use { doc ->
                         doc.isAllSecurityToBeRemoved = true
-                        
+
                         // Save to temporary cache
                         val tempFile = File(context.cacheDir, "$TEMP_PDF_PREFIX${System.currentTimeMillis()}.pdf")
                         FileOutputStream(tempFile).use { out ->
                             doc.save(out)
                         }
-                        
+
                         // Now open the decrypted file
                         withContext(Dispatchers.IO) {
                             activeTempPdfFile = tempFile
                             openPdfInternal(Uri.fromFile(tempFile), context)
-                            
-                            // ── Persist Original Encrypted PDF ──
+
+                            // â”€â”€ Persist Original Encrypted PDF â”€â”€
                             val originalName = _pdfName.value ?: "Document"
                             val resolvedName = resolveFileName(uri, context) ?: originalName
                             val fileSize = try {
                                 context.contentResolver.openFileDescriptor(uri, "r")?.use { it.statSize.takeIf { s -> s > 0 } } ?: 0L
                             } catch (_: Exception) { 0L }
                             _pdfName.value = resolvedName
-                            
+
                             val localCopyPath = if (uri.scheme == "content") {
                                 copyUriToInternalStorage(uri, resolvedName, context)
                             } else null
-                            
+
                             repository.saveRecentPdf(
                                 RecentPdf(
                                     uri = uri.toString(),
@@ -429,15 +437,15 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
 
                             val pdfId = computePdfId(uri, resolvedName, fileSize)
                             currentPdfId = pdfId
-                            
+
                             val savedPage = progressRepository.getProgress(pdfId)
                             val maxPage = _pageCount.value
                             _restoredPage.value = if (maxPage > 0 && savedPage in 0 until maxPage) savedPage else 0
                             _bookmarks.value = progressRepository.getBookmarks(pdfId)
-                            
+
                             val recentPdfs = repository.getRecentPdfs()
                             _isFavorite.value = recentPdfs.find { it.uri == uri.toString() }?.isFavorite ?: false
-                            
+
                             android.util.Log.d("PDF_DEBUG", "unlock successful")
                             android.util.Log.d("PDF_DEBUG", "original URI: $uri")
                             android.util.Log.d("PDF_DEBUG", "temp decrypted URI: $tempFile")
@@ -458,6 +466,29 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    fun shareCurrentPdf(context: Context) {
+        val uri = _currentPdfUri.value ?: return
+        val name = _pdfName.value ?: "Document"
+        val tempFile = activeTempPdfFile
+
+        viewModelScope.launch(Dispatchers.IO) {
+            // Find localCopyPath from recent repository if available
+            val recentPdfs = repository.getRecentPdfs()
+            val recentPdf = recentPdfs.find { it.uri == uri.toString() }
+            val localCopyPath = recentPdf?.localCopyPath
+
+            withContext(Dispatchers.Main) {
+                com.stutool.stutool.utils.PdfShareUtils.sharePdf(
+                    context = context,
+                    localCopyPath = localCopyPath,
+                    originalUri = uri,
+                    activeTempPdfFile = tempFile,
+                    displayName = name
+                )
+            }
+        }
+    }
+
     private suspend fun openPdfInternal(tempUri: Uri, context: Context) {
         android.util.Log.d("PDF_DEBUG", "openPdfInternal entered")
         rendererMutex.withLock {
@@ -470,7 +501,7 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
                     currentContentUri = tempUri
                     _pageCount.value = pdfRenderer?.pageCount ?: 0
                     _isPasswordRequired.value = false
-                    
+
                     android.util.Log.d("PDF_DEBUG", "openPdfInternal displayUri: ${_displayUri.value}")
                     android.util.Log.d("PDF_DEBUG", "openPdfInternal currentContentUri: $currentContentUri")
                     android.util.Log.d("PDF_DEBUG", "openPdfInternal pageCount: ${_pageCount.value}")
@@ -483,7 +514,7 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
                 _errorMessage.value = "Failed to load decrypted PDF."
             }
         }
-        
+
         pdfDocumentMutex.withLock {
             try {
                 context.contentResolver.openInputStream(tempUri)?.use { stream ->
@@ -494,7 +525,7 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }
     }
-    
+
     fun clearError() {
         _errorMessage.value = null
     }
@@ -502,11 +533,11 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
     suspend fun getPageLayout(pageIndex: Int): PdfPageLayout? {
         return withContext(Dispatchers.IO) {
             layoutCache.get(pageIndex)?.let { return@withContext it }
-            
+
             pdfDocumentMutex.withLock {
                 coroutineContext.ensureActive()
                 val doc = activePdfDocument ?: return@withContext null
-                
+
                 try {
                     val page = doc.getPage(pageIndex)
                     val cropBox = page.cropBox
@@ -514,7 +545,7 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
                     val isRotated = rotation == 90 || rotation == 270
                     val pageWidth = if (isRotated) cropBox.height else cropBox.width
                     val pageHeight = if (isRotated) cropBox.width else cropBox.height
-                    
+
                     val elements = mutableListOf<PdfTextElement>()
                         val stripper = object : PDFTextStripper() {
                             private val linesMap = mutableMapOf<Float, MutableList<TextPosition>>()
@@ -522,22 +553,22 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
                             override fun writeString(string: String?, textPositions: MutableList<TextPosition>?) {
                                 if (string != null && textPositions != null) {
                                     textPositions.forEach { pos ->
-                                        val y = (pos.yDirAdj * 10).toInt() / 10f 
+                                        val y = (pos.yDirAdj * 10).toInt() / 10f
                                         linesMap.getOrPut(y) { mutableListOf() }.add(pos)
                                     }
                                 }
                             }
 
                             override fun writePage() {
-                                super.writePage() 
+                                super.writePage()
                                 linesMap.keys.sorted().forEach { y ->
                                     val lineChars = linesMap[y]?.sortedBy { it.xDirAdj } ?: return@forEach
                                     if (lineChars.isEmpty()) return@forEach
-                                    
+
                                     val lineText = lineChars.joinToString("") { it.unicode ?: "" }
                                     val first = lineChars.first()
                                     val last = lineChars.last()
-                                    
+
                                     // Build exact per-character geometry from PDFBox TextPosition
                                     val charPos = mutableListOf<Float>()
                                     val charWid = mutableListOf<Float>()
@@ -556,11 +587,11 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
                                             }
                                         }
                                     }
-                                    
+
                                     // Adjust for cropBox offset if any
                                     val elementX = first.xDirAdj - cropBox.lowerLeftX
-                                    
-                                    // PDFBox yDirAdj is from the top of the mediaBox. 
+
+                                    // PDFBox yDirAdj is from the top of the mediaBox.
                                     // We need to adjust it to be relative to the top of the cropBox.
                                     val relativeY = first.yDirAdj - (page.mediaBox.upperRightY - cropBox.upperRightY)
 
@@ -579,7 +610,7 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
                                     } catch (e: Exception) {
                                         // Ignore and fallback
                                     }
-                                    
+
                                     if (ascent <= 0f) {
                                         // Fallback heuristic for fonts without metrics
                                         ascent = first.heightDir * 0.8f
@@ -614,7 +645,15 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
 
     // Toggles for Bottom Sheet view modes
     fun setBackgroundMode(mode: BackgroundMode) { _backgroundMode.value = mode }
-    fun setReadingDirection(direction: ReadingDirection) { _readingDirection.value = direction }
+    fun setReadingDirection(direction: ReadingDirection) {
+        _readingDirection.value = direction
+        themePrefs.setReadingDirection(direction == ReadingDirection.Vertical)
+    }
+    fun toggleContinuousView() {
+        val newState = !_isContinuousView.value
+        _isContinuousView.value = newState
+        themePrefs.setContinuousView(newState)
+    }
     fun toggleReflow() { _isReflowEnabled.value = !_isReflowEnabled.value }
     fun togglePageByPage() { _isPageByPageEnabled.value = !_isPageByPageEnabled.value }
     fun toggleKeepScreenOn() { _isKeepScreenOn.value = !_isKeepScreenOn.value }
@@ -623,11 +662,12 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
     suspend fun getPageText(pageIndex: Int): String {
         return withContext(Dispatchers.IO) {
             textCache.get(pageIndex)?.let { return@withContext it }
-            
+
             pdfDocumentMutex.withLock {
                 coroutineContext.ensureActive()
+                textCache.get(pageIndex)?.let { return@withContext it }
                 val doc = activePdfDocument ?: return@withContext "Could not load text."
-                
+
                 try {
                     val stripper = PDFTextStripper()
                     stripper.startPage = pageIndex + 1  // 1-indexed
@@ -640,6 +680,25 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
                     e.printStackTrace()
                     "Failed to extract text: ${e.localizedMessage}"
                 }
+            }
+        }
+    }
+
+    private var prefetchJob: kotlinx.coroutines.Job? = null
+
+    fun preloadTextWindow(currentPage: Int) {
+        val maxIndex = _pageCount.value - 1
+        if (maxIndex < 0) return
+
+        var end = minOf(maxIndex, currentPage + 1)
+        val start = maxOf(0, end - 2)
+        end = minOf(maxIndex, start + 2)
+
+        prefetchJob?.cancel()
+        prefetchJob = viewModelScope.launch(Dispatchers.IO) {
+            for (i in start..end) {
+                ensureActive()
+                getPageText(i)
             }
         }
     }
@@ -661,55 +720,112 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun printPdf(context: Context) {
-        val uri = _currentPdfUri.value ?: return
-        val printManager = context.getSystemService(Context.PRINT_SERVICE) as? PrintManager ?: return
-        val jobName = "${_pdfName.value ?: "Document"}.pdf"
-        
-        try {
-            val fileDescriptor = context.contentResolver.openFileDescriptor(uri, "r") ?: return
-            val printAdapter = object : android.print.PrintDocumentAdapter() {
-                override fun onLayout(
-                    oldAttributes: PrintAttributes?,
-                    newAttributes: PrintAttributes?,
-                    cancellationSignal: android.os.CancellationSignal?,
-                    callback: LayoutResultCallback?,
-                    extras: android.os.Bundle?
-                ) {
-                    if (cancellationSignal?.isCanceled == true) {
-                        callback?.onLayoutCancelled()
-                        return
-                    }
-                    val info = android.print.PrintDocumentInfo.Builder(jobName)
-                        .setContentType(android.print.PrintDocumentInfo.CONTENT_TYPE_DOCUMENT)
-                        .setPageCount(android.print.PrintDocumentInfo.PAGE_COUNT_UNKNOWN)
-                        .build()
-                    callback?.onLayoutFinished(info, true)
+        val uri = _currentPdfUri.value ?: run {
+            com.stutool.stutool.utils.PdfShareUtils.showError(context, "Cannot print: no document is open.")
+            return
+        }
+        val name = _pdfName.value ?: "Document"
+        val tempFile = activeTempPdfFile
+
+        viewModelScope.launch(Dispatchers.IO) {
+            // Resolve the best available readable file (same priority as Share)
+            val recentPdfs = repository.getRecentPdfs()
+            val recentPdf = recentPdfs.find { it.uri == uri.toString() }
+            val localCopyPath = recentPdf?.localCopyPath
+
+            val printFile = com.stutool.stutool.utils.PdfShareUtils.resolveReadableFile(
+                context = context,
+                localCopyPath = localCopyPath,
+                originalUri = uri,
+                activeTempPdfFile = tempFile,
+                displayName = name,
+                cacheSubDir = "print_cache"
+            )
+
+            withContext(Dispatchers.Main) {
+                if (printFile == null || !printFile.exists() || printFile.length() == 0L) {
+                    com.stutool.stutool.utils.PdfShareUtils.showError(
+                        context, "Cannot print: the document source is unavailable."
+                    )
+                    return@withContext
                 }
 
-                override fun onWrite(
-                    pages: Array<out android.print.PageRange>?,
-                    destination: android.os.ParcelFileDescriptor?,
-                    cancellationSignal: android.os.CancellationSignal?,
-                    callback: WriteResultCallback?
-                ) {
-                    val input = android.os.ParcelFileDescriptor.AutoCloseInputStream(fileDescriptor)
-                    val output = android.os.ParcelFileDescriptor.AutoCloseOutputStream(destination)
-                    
-                    try {
-                        input.copyTo(output)
-                        callback?.onWriteFinished(arrayOf(android.print.PageRange.ALL_PAGES))
-                    } catch (e: Exception) {
-                        callback?.onWriteFailed(e.message)
-                    } finally {
-                        // Don't close input here as it's from the shared fileDescriptor
+                val printManager = context.getSystemService(Context.PRINT_SERVICE) as? PrintManager ?: run {
+                    com.stutool.stutool.utils.PdfShareUtils.showError(context, "Print service is unavailable.")
+                    return@withContext
+                }
+
+                val jobName = com.stutool.stutool.utils.PdfShareUtils
+                    .sanitizeFilename(name)
+                    .removeSuffix(".pdf") // PrintManager appends its own label
+
+                val printAdapter = object : android.print.PrintDocumentAdapter() {
+
+                    override fun onLayout(
+                        oldAttributes: PrintAttributes?,
+                        newAttributes: PrintAttributes?,
+                        cancellationSignal: android.os.CancellationSignal?,
+                        callback: LayoutResultCallback?,
+                        extras: android.os.Bundle?
+                    ) {
+                        if (cancellationSignal?.isCanceled == true) {
+                            callback?.onLayoutCancelled()
+                            return
+                        }
+                        // Page count reported as UNKNOWN; the framework determines the real count
+                        // by reading the PDF bytes in onWrite().
+                        val info = android.print.PrintDocumentInfo.Builder(jobName)
+                            .setContentType(android.print.PrintDocumentInfo.CONTENT_TYPE_DOCUMENT)
+                            .setPageCount(android.print.PrintDocumentInfo.PAGE_COUNT_UNKNOWN)
+                            .build()
+                        callback?.onLayoutFinished(info, true)
+                    }
+
+                    override fun onWrite(
+                        pages: Array<out android.print.PageRange>?,
+                        destination: android.os.ParcelFileDescriptor?,
+                        cancellationSignal: android.os.CancellationSignal?,
+                        callback: WriteResultCallback?
+                    ) {
+                        // Open a FRESH FileInputStream every time onWrite() is called.
+                        // The framework can call onWrite() multiple times (e.g. when the user
+                        // changes paper size/orientation in print preview). Reusing a consumed
+                        // stream or AutoCloseInputStream would make subsequent calls read from
+                        // an already-closed descriptor, causing a silent print failure.
+                        if (cancellationSignal?.isCanceled == true) {
+                            callback?.onWriteCancelled()
+                            return
+                        }
+                        try {
+                            java.io.FileInputStream(printFile).use { input ->
+                                android.os.ParcelFileDescriptor.AutoCloseOutputStream(destination).use { output ->
+                                    input.copyTo(output)
+                                }
+                            }
+                            callback?.onWriteFinished(arrayOf(android.print.PageRange.ALL_PAGES))
+                        } catch (e: Exception) {
+                            android.util.Log.e("PdfPrint", "Print write failed", e)
+                            callback?.onWriteFailed(e.message)
+                        }
+                    }
+
+                    override fun onFinish() {
+                        // The print job is fully done (printed, saved, or cancelled).
+                        // The file lives in print_cache/ and will be pruned by cleanupCacheSync()
+                        // once it is older than 2 hours, matching the share_cache policy.
                     }
                 }
+
+                try {
+                    printManager.print(jobName, printAdapter, null)
+                } catch (e: Exception) {
+                    android.util.Log.e("PdfPrint", "Failed to start print job", e)
+                    com.stutool.stutool.utils.PdfShareUtils.showError(context, "Failed to start print job.")
+                }
             }
-            printManager.print(jobName, printAdapter, null)
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
     }
+
 
     suspend fun getPageBitmap(pageIndex: Int, targetWidth: Int): Bitmap? {
         return withContext(Dispatchers.IO) {
@@ -719,23 +835,23 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
 
             rendererMutex.withLock {
                 val renderer = pdfRenderer ?: return@withContext null
-                
+
                 if (pageIndex < 0 || pageIndex >= renderer.pageCount) {
                     return@withContext null
                 }
-                
+
                 var page: PdfRenderer.Page? = null
                 try {
                     page = renderer.openPage(pageIndex)
-                    
+
                     val pageRatio = page.width.toFloat() / page.height.toFloat()
                     val safeDims = BitmapSafety.calculateSafeDimensions(targetWidth, pageRatio)
-                    
+
                     val bitmap = Bitmap.createBitmap(safeDims.width, safeDims.height, Bitmap.Config.ARGB_8888)
                     bitmap.eraseColor(Color.WHITE)
-                    
+
                     page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                    
+
                     bitmapCache.put(cacheKey, bitmap)
                     return@withContext bitmap
                 } catch (e: Exception) {
@@ -769,8 +885,8 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
                     page = renderer.openPage(pageIndex)
                     val bitmap = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
                     bitmap.eraseColor(Color.WHITE)
-                    
-                    // Render with the transformation matrix (scale + translate) 
+
+                    // Render with the transformation matrix (scale + translate)
                     page.render(bitmap, null, matrix, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                     return@withContext bitmap
                 } catch (e: Exception) {
@@ -809,7 +925,7 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    // ── Snap a continuous scale to the nearest cached zoom tier ──
+    // â”€â”€ Snap a continuous scale to the nearest cached zoom tier â”€â”€
     fun snapToZoomLevel(rawScale: Float): Float {
         return when {
             rawScale <= 1.5f  -> 1.5f
@@ -877,6 +993,19 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
                     file.delete()
                 }
             }
+
+            // Clean up old share files (older than 2 hours)
+            val threshold = System.currentTimeMillis() - (2 * 60 * 60 * 1000)
+            listOf("share_cache", "print_cache").forEach { subDir ->
+                val dir = File(cacheDir, subDir)
+                if (dir.exists()) {
+                    dir.listFiles()?.forEach { file ->
+                        if (file.lastModified() < threshold) {
+                            file.delete()
+                        }
+                    }
+                }
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -911,7 +1040,7 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
             _isLargeFile.value = false
             currentContentUri = null
         }
-        
+
         try {
             activePdfDocument?.close()
         } catch (e: Exception) {
@@ -958,7 +1087,7 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
             _bookmarks.value = progressRepository.getBookmarks(pdfId)
         }
     }
-    
+
     fun consumeRestoredPage() {
         _restoredPage.value = null
     }
@@ -989,14 +1118,14 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
         // Return without extension, fallback to non-null
         return name?.substringBeforeLast(".")?.takeIf { it.isNotBlank() }
     }
-    // ── Search Functions ──
+    // â”€â”€ Search Functions â”€â”€
     fun openSearch() {
         _isSearchActive.value = true
         _searchQuery.value = ""
         _searchResults.value = emptyList()
         _currentMatchIndex.value = 0
         _searchNoTextFound.value = false
-        
+
         // Lazy initialize search cache
         if (searchSessionCache == null && !_isLoading.value && activePdfDocument != null) {
             buildSearchCache()
@@ -1059,7 +1188,7 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
             }
             searchSessionCache = cache
             _isSearchParsing.value = false
-            
+
             // If user typed while parsing, execute it now
             val query = _searchQuery.value
             if (query.isNotBlank()) {
@@ -1076,30 +1205,30 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
 
             val lowerQuery = query.trim().lowercase()
             val matches = mutableListOf<SearchMatch>()
-            
+
             // 1. Find pages with matches using lightweight text cache
             val pagesWithMatches = cache.filter { it.extractedText.lowercase().contains(lowerQuery) }
-            
+
             if (pagesWithMatches.isEmpty()) {
                 _searchResults.value = emptyList()
                 _searchNoTextFound.value = cache.all { it.extractedText.isBlank() }
                 return@launch
             }
-            
+
             _searchNoTextFound.value = false
-            
+
             // 2. Dynamically extract geometry ONLY for matching pages
             for (pageData in pagesWithMatches) {
                 ensureActive()
                 val layout = getPageLayout(pageData.pageIndex) ?: continue
-                
+
                 for (element in layout.elements) {
                     ensureActive()
                     val lowerElementText = element.text.lowercase()
                     var startIndex = lowerElementText.indexOf(lowerQuery)
                     while (startIndex >= 0) {
                         val endIndex = startIndex + lowerQuery.length - 1
-                        
+
                         // Use exact per-character geometry from PDFBox
                         val left = if (startIndex < element.charPositions.size) {
                             element.charPositions[startIndex]
@@ -1111,18 +1240,18 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
                         } else {
                             element.x + element.width
                         }
-                        
+
                         matches.add(SearchMatch(
                             pageIndex = pageData.pageIndex,
                             matchText = element.text.substring(startIndex, startIndex + lowerQuery.length),
                             bounds = listOf(android.graphics.RectF(left, element.y, right, element.y + element.height))
                         ))
-                        
+
                         startIndex = lowerElementText.indexOf(lowerQuery, startIndex + 1)
                     }
                 }
             }
-            
+
             _searchResults.value = matches
             _currentMatchIndex.value = 0
         }

@@ -26,6 +26,14 @@ import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.WindowInsets
+
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -36,6 +44,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.foundation.verticalScroll
@@ -48,6 +57,10 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
@@ -97,7 +110,7 @@ fun PdfReaderScreen(
     val pdfName by viewModel.pdfName.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-    
+
     val isPasswordRequired by viewModel.isPasswordRequired.collectAsState()
     val isUnlocking by viewModel.isUnlocking.collectAsState()
     val passwordErrorMessage by viewModel.passwordErrorMessage.collectAsState()
@@ -111,7 +124,7 @@ fun PdfReaderScreen(
     val isKeepScreenOn by viewModel.isKeepScreenOn.collectAsState()
 
     val isFavorite by viewModel.isFavorite.collectAsState()
-    
+
     val isSearchActive by viewModel.isSearchActive.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
@@ -121,10 +134,14 @@ fun PdfReaderScreen(
 
     val bookmarks by viewModel.bookmarks.collectAsState()
     val restoredPage by viewModel.restoredPage.collectAsState()
-    
+
     var showBookmarksSheet by remember { mutableStateOf(false) }
     var jumpToPage by remember { mutableStateOf<Int?>(null) }
     var currentPage by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(currentPage) {
+        viewModel.preloadTextWindow(currentPage)
+    }
 
     var showBottomSheet by remember { mutableStateOf(false) }
     var showTextSheet by remember { mutableStateOf(false) }
@@ -132,11 +149,58 @@ fun PdfReaderScreen(
     var showGoToPageDialog by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
     var barsVisible by remember { mutableStateOf(true) }
+    var showGuide by remember { mutableStateOf(false) }
+    var guideStep by remember { mutableIntStateOf(0) }
+    val themePrefs = com.stutool.stutool.data.local.ThemePreferences.getInstance(context)
 
+    LaunchedEffect(Unit) {
+        if (!themePrefs.isPdfGuideComplete()) {
+            showGuide = true
+        }
+    }
+
+    LaunchedEffect(showGuide) {
+        if (showGuide) {
+            barsVisible = true
+        }
+    }
+
+    val isLandscape = LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+
+    val view = LocalView.current
+    val window = (view.context as? android.app.Activity)?.window
+
+    val textBounds = remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+    val viewBounds = remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+    val shareBounds = remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+
+    LaunchedEffect(isLandscape, barsVisible) {
+        window?.let { win ->
+            val controller = WindowInsetsControllerCompat(win, view)
+            if (isLandscape && !barsVisible) {
+                controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                controller.hide(WindowInsetsCompat.Type.systemBars())
+            } else {
+                controller.show(WindowInsetsCompat.Type.systemBars())
+            }
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            window?.let { win ->
+                val controller = WindowInsetsControllerCompat(win, view)
+                controller.show(WindowInsetsCompat.Type.systemBars())
+            }
+        }
+    }
+
+    val isContinuousView by viewModel.isContinuousView.collectAsState()
+    val continuousListState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
-    // â”€â”€ Keep Screen On â”€â”€
+    // Ã¢â€â‚¬Ã¢â€â‚¬ Keep Screen On Ã¢â€â‚¬Ã¢â€â‚¬
     DisposableEffect(isKeepScreenOn) {
         if (isKeepScreenOn) {
             activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -173,6 +237,7 @@ fun PdfReaderScreen(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0.dp),
         snackbarHost = {
             SnackbarHost(snackbarHostState) { data ->
                 Snackbar(
@@ -193,11 +258,12 @@ fun PdfReaderScreen(
                 if (isSearchActive) {
                     val focusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
                     LaunchedEffect(Unit) { focusRequester.requestFocus() }
-                    
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(MaterialTheme.colorScheme.surfaceContainer)
+                            .windowInsetsPadding(WindowInsets.statusBars)
                             .padding(horizontal = 4.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -207,7 +273,7 @@ fun PdfReaderScreen(
                         ) {
                             Icon(Icons.Default.ArrowBack, contentDescription = "Close search", tint = MaterialTheme.colorScheme.onSurface)
                         }
-                        
+
                         TextField(
                             value = searchQuery,
                             onValueChange = { viewModel.updateSearchQuery(it) },
@@ -233,7 +299,7 @@ fun PdfReaderScreen(
                                 }
                             }
                         )
-                        
+
                         if (isSearchParsing) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
@@ -280,6 +346,7 @@ fun PdfReaderScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(MaterialTheme.colorScheme.background)
+                            .windowInsetsPadding(WindowInsets.statusBars)
                             .padding(horizontal = 4.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -290,7 +357,7 @@ fun PdfReaderScreen(
                             Icon(Icons.Default.ArrowBack, contentDescription = "Navigate back", tint = MaterialTheme.colorScheme.onBackground)
                         }
                         Text(
-                            text = if (currentPdfUri != null) pdfName ?: "Document" else "Loading…",
+                            text = if (currentPdfUri != null) pdfName ?: "Document" else "Loadingâ€¦",
                             color = MaterialTheme.colorScheme.onBackground,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -318,6 +385,7 @@ fun PdfReaderScreen(
                         IconButton(
                             onClick = {
                                 val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
                                 activity?.requestedOrientation = if (isLandscape) {
                                     ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
                                 } else {
@@ -386,6 +454,15 @@ fun PdfReaderScreen(
                                         viewModel.printPdf(context)
                                     }
                                 )
+                                DropdownMenuItem(
+                                    text = { Text("PDF Viewer Guide", color = MaterialTheme.colorScheme.onSurface) },
+                                    leadingIcon = { Icon(Icons.Default.HelpOutline, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                                    onClick = {
+                                        showMenu = false
+                                        guideStep = 0
+                                        showGuide = true
+                                    }
+                                )
                             }
                         }
                     }
@@ -402,7 +479,7 @@ fun PdfReaderScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
+                ,
             contentAlignment = Alignment.Center
         ) {
             if (isLoading) {
@@ -417,7 +494,7 @@ fun PdfReaderScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "Opening document…",
+                        text = "Opening documentâ€¦",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 14.sp
                     )
@@ -432,7 +509,7 @@ fun PdfReaderScreen(
                 )
             } else if (displayUri != null && pageCount > 0) {
                 var storedPage by rememberSaveable { mutableIntStateOf(0) }
-                
+
                 if (isLargeFile) {
                     LaunchedEffect(Unit) {
                         snackbarHostState.showSnackbar("Large file detected. Some features may be slower.")
@@ -441,18 +518,42 @@ fun PdfReaderScreen(
                 key(readingDirection) {
                     val pagerState = rememberPagerState(initialPage = storedPage, pageCount = { pageCount })
                     val pagerCoroutineScope = rememberCoroutineScope()
+                    var previousMode by remember { mutableStateOf(isContinuousView) }
 
-                    LaunchedEffect(pagerState.currentPage) {
-                        storedPage = pagerState.currentPage
-                        currentPage = pagerState.currentPage
-                        viewModel.saveReadingProgress(pagerState.currentPage)
+                    LaunchedEffect(isContinuousView) {
+                        if (previousMode != isContinuousView) {
+                            if (isContinuousView) {
+                                continuousListState.scrollToItem(currentPage)
+                            } else {
+                                pagerState.scrollToPage(currentPage)
+                            }
+                            previousMode = isContinuousView
+                        }
+
+                        if (isContinuousView) {
+                            androidx.compose.runtime.snapshotFlow { continuousListState.firstVisibleItemIndex }.collect { index ->
+                                storedPage = index
+                                currentPage = index
+                                viewModel.saveReadingProgress(index)
+                            }
+                        } else {
+                            androidx.compose.runtime.snapshotFlow { pagerState.currentPage }.collect { index ->
+                                storedPage = index
+                                currentPage = index
+                                viewModel.saveReadingProgress(index)
+                            }
+                        }
                     }
 
                     LaunchedEffect(pageCount, restoredPage) {
                         val pageToRestore = restoredPage
                         if (pageCount > 0 && pageToRestore != null) {
                             if (pageToRestore in 0 until pageCount) {
-                                pagerState.scrollToPage(pageToRestore)
+                                if (isContinuousView) {
+                                    continuousListState.scrollToItem(pageToRestore)
+                                } else {
+                                    pagerState.scrollToPage(pageToRestore)
+                                }
                             }
                             viewModel.consumeRestoredPage()
                         }
@@ -461,12 +562,16 @@ fun PdfReaderScreen(
                     LaunchedEffect(jumpToPage) {
                         jumpToPage?.let { page ->
                             if (page in 0 until pageCount) {
-                                pagerState.animateScrollToPage(page)
+                                if (isContinuousView) {
+                                    continuousListState.animateScrollToItem(page)
+                                } else {
+                                    pagerState.animateScrollToPage(page)
+                                }
                             }
                             jumpToPage = null
                         }
                     }
-                    
+
                     // Auto-navigation for Search
                     LaunchedEffect(currentMatchIndex, searchResults, isSearchActive) {
                         if (searchResults.isNotEmpty() && isSearchActive && currentMatchIndex in searchResults.indices) {
@@ -477,7 +582,17 @@ fun PdfReaderScreen(
                         }
                     }
 
-                    if (readingDirection == ReadingDirection.Vertical) {
+                    if (isContinuousView) {
+                        ContinuousPdfViewer(
+                            pageCount = pageCount,
+                            viewModel = viewModel,
+                            backgroundMode = backgroundMode,
+                            readingDirection = readingDirection,
+                            listState = continuousListState,
+                            onSingleTap = { barsVisible = !barsVisible },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else if (readingDirection == ReadingDirection.Vertical) {
                         VerticalPager(
                             state = pagerState,
                             modifier = Modifier.fillMaxSize(),
@@ -489,7 +604,7 @@ fun PdfReaderScreen(
                             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                                 val viewerWidth = constraints.maxWidth.toFloat()
                                 val viewerHeight = constraints.maxHeight.toFloat()
-                                
+
                                 if (isReflow) {
                                     ReflowPdfPage(
                                         pageIndex = index,
@@ -538,7 +653,7 @@ fun PdfReaderScreen(
                             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                                 val viewerWidth = constraints.maxWidth.toFloat()
                                 val viewerHeight = constraints.maxHeight.toFloat()
-                                
+
                                 if (isReflow) {
                                     ReflowPdfPage(
                                         pageIndex = index,
@@ -580,7 +695,9 @@ fun PdfReaderScreen(
                     // Page Number Badge (clickable to open go-to-page)
                     AnimatedVisibility(
                         visible = barsVisible,
-                        modifier = Modifier.align(Alignment.BottomCenter),
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .windowInsetsPadding(WindowInsets.navigationBars),
                         enter = slideInVertically { it } + fadeIn(animationSpec = tween(150)),
                         exit = slideOutVertically { it } + fadeOut(animationSpec = tween(150))
                     ) {
@@ -592,7 +709,7 @@ fun PdfReaderScreen(
                             modifier = Modifier.padding(bottom = 96.dp)
                         ) {
                             Text(
-                                text = "${pagerState.currentPage + 1} / $pageCount",
+                                text = "${currentPage + 1} / $pageCount",
                                 color = MaterialTheme.colorScheme.inverseOnSurface,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
@@ -601,7 +718,39 @@ fun PdfReaderScreen(
                         }
                     }
 
-                    // â”€â”€ Go to Page Dialog â”€â”€
+                    // â”€â”€ Scrubber â”€â”€
+                    var scrubJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+                    var lastTargetPage by remember { mutableIntStateOf(-1) }
+                    AnimatedVisibility(
+                        visible = barsVisible,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .windowInsetsPadding(WindowInsets.systemBars),
+                        enter = fadeIn(animationSpec = tween(150)),
+                        exit = fadeOut(animationSpec = tween(150))
+                    ) {
+                        PdfScrubber(
+                            pageCount = pageCount,
+                            currentPage = currentPage,
+                            onPageSelect = { targetPage ->
+                                if (targetPage != lastTargetPage) {
+                                    lastTargetPage = targetPage
+                                    scrubJob?.cancel()
+                                    scrubJob = coroutineScope.launch {
+                                        if (isContinuousView) {
+                                            continuousListState.animateScrollToItem(targetPage)
+                                        } else {
+                                            pagerState.animateScrollToPage(targetPage)
+                                        }
+                                        lastTargetPage = -1
+                                    }
+                                }
+                            },
+                            isVertical = readingDirection == ReadingDirection.Vertical
+                        )
+                    }
+
+                    // Ã¢â€â‚¬Ã¢â€â‚¬ Go to Page Dialog Ã¢â€â‚¬Ã¢â€â‚¬
                     if (showGoToPageDialog) {
                         GoToPageDialog(
                             currentPage = pagerState.currentPage + 1,
@@ -619,7 +768,8 @@ fun PdfReaderScreen(
                     // â”€â”€ Text Mode Bottom Sheet â”€â”€
                     if (showTextSheet) {
                         TextSelectionSheet(
-                            pageIndex = pagerState.currentPage,
+                            pageIndex = currentPage,
+                            pageCount = pageCount,
                             viewModel = viewModel,
                             onDismiss = { showTextSheet = false }
                         )
@@ -652,11 +802,11 @@ fun PdfReaderScreen(
                     )
                 }
             }
-            
+
             // Bottom Controls Overlay
             AnimatedVisibility(
                 visible = barsVisible,
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp),
+                modifier = Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.navigationBars).padding(bottom = 16.dp),
                 enter = slideInVertically { it } + fadeIn(animationSpec = tween(150)),
                 exit = slideOutVertically { it } + fadeOut(animationSpec = tween(150))
             ) {
@@ -675,7 +825,8 @@ fun PdfReaderScreen(
                     ) {
                         TextButton(
                             onClick = { showTextSheet = true },
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            modifier = Modifier.weight(1f).fillMaxHeight()
+                                .onGloballyPositioned { textBounds.value = it.boundsInWindow() },
                             contentPadding = PaddingValues(0.dp),
                             shape = RoundedCornerShape(20.dp)
                         ) {
@@ -690,7 +841,8 @@ fun PdfReaderScreen(
                         }
                         TextButton(
                             onClick = { showBottomSheet = true },
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            modifier = Modifier.weight(1f).fillMaxHeight()
+                                .onGloballyPositioned { viewBounds.value = it.boundsInWindow() },
                             contentPadding = PaddingValues(0.dp),
                             shape = RoundedCornerShape(20.dp)
                         ) {
@@ -715,7 +867,8 @@ fun PdfReaderScreen(
                                     context.startActivity(Intent.createChooser(shareIntent, "Share PDF"))
                                 }
                             },
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            modifier = Modifier.weight(1f).fillMaxHeight()
+                                .onGloballyPositioned { shareBounds.value = it.boundsInWindow() },
                             contentPadding = PaddingValues(0.dp),
                             shape = RoundedCornerShape(20.dp)
                         ) {
@@ -733,7 +886,7 @@ fun PdfReaderScreen(
             }
         }
 
-        // ── Bookmarks Bottom Sheet ──
+        // â”€â”€ Bookmarks Bottom Sheet â”€â”€
         if (showBookmarksSheet) {
             val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
             ModalBottomSheet(
@@ -749,7 +902,7 @@ fun PdfReaderScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     if (bookmarks.isEmpty()) {
                         Column(
                             modifier = Modifier.fillMaxSize(),
@@ -782,7 +935,7 @@ fun PdfReaderScreen(
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clickable { 
+                                        .clickable {
                                             showBookmarksSheet = false
                                             jumpToPage = page
                                         }
@@ -835,7 +988,7 @@ fun PdfReaderScreen(
             }
         }
 
-        // ── View Mode Bottom Sheet ──
+        // â”€â”€ View Mode Bottom Sheet â”€â”€
         if (showBottomSheet) {
             val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
             ModalBottomSheet(
@@ -862,6 +1015,33 @@ fun PdfReaderScreen(
                         ModeButton("Paper", backgroundMode == BackgroundMode.Paper, Modifier.weight(1f)) { viewModel.setBackgroundMode(BackgroundMode.Paper) }
                         ModeButton("Eye", backgroundMode == BackgroundMode.EyeComfort, Modifier.weight(1f)) { viewModel.setBackgroundMode(BackgroundMode.EyeComfort) }
                         ModeButton("Invert", backgroundMode == BackgroundMode.Invert, Modifier.weight(1f)) { viewModel.setBackgroundMode(BackgroundMode.Invert) }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text("Scrolling Mode", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("Continuous Scroll", color = MaterialTheme.colorScheme.onBackground, fontSize = 15.sp, fontWeight = FontWeight.Normal)
+                            Text("Scroll through pages continuously", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                        }
+                        Switch(
+                            checked = isContinuousView,
+                            onCheckedChange = { viewModel.toggleContinuousView() },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primary,
+                                uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -907,7 +1087,7 @@ fun PdfReaderScreen(
             }
         }
 
-        // â”€â”€ Rename Dialog â”€â”€
+        // Ã¢â€â‚¬Ã¢â€â‚¬ Rename Dialog Ã¢â€â‚¬Ã¢â€â‚¬
         if (showRenameDialog) {
             var newName by remember { mutableStateOf(pdfName ?: "") }
             AlertDialog(
@@ -947,6 +1127,113 @@ fun PdfReaderScreen(
                 containerColor = MaterialTheme.colorScheme.surfaceContainer
             )
         }
+
+        // â”€â”€ PDF Viewer Guide Overlay â”€â”€
+        if (showGuide) {
+            val targetRect = when (guideStep) {
+                0 -> textBounds.value
+                1 -> viewBounds.value
+                2 -> shareBounds.value
+                else -> null
+            }
+            val title = when (guideStep) {
+                0 -> "Copy Text"
+                1 -> "View Settings"
+                2 -> "Share PDF"
+                else -> ""
+            }
+            val desc = when (guideStep) {
+                0 -> "Copy text directly from PDF pages."
+                1 -> "Change reading settings, like Continuous Scroll and other viewing options."
+                2 -> "Share this document instantly with others."
+                else -> ""
+            }
+
+            val density = LocalDensity.current
+            val spotlightPadding = with(density) { 8.dp.toPx() }
+            val spotlightCorner = with(density) { 20.dp.toPx() }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(Unit) {
+                        detectTapGestures(onTap = {}) // Consume touches
+                    }
+            ) {
+                // Dimmed overlay with spotlight cutout
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val dimPath = Path().apply {
+                        addRect(androidx.compose.ui.geometry.Rect(0f, 0f, size.width, size.height))
+                    }
+                    targetRect?.let { rect ->
+                        val spotlightRect = androidx.compose.ui.geometry.Rect(
+                            left = rect.left - spotlightPadding,
+                            top = rect.top - spotlightPadding,
+                            right = rect.right + spotlightPadding,
+                            bottom = rect.bottom + spotlightPadding
+                        )
+                        val spotlightPath = Path().apply {
+                            addRoundRect(
+                                androidx.compose.ui.geometry.RoundRect(
+                                    spotlightRect,
+                                    androidx.compose.ui.geometry.CornerRadius(spotlightCorner, spotlightCorner)
+                                )
+                            )
+                        }
+                        dimPath.op(dimPath, spotlightPath, androidx.compose.ui.graphics.PathOperation.Difference)
+                    }
+                    drawPath(dimPath, Color.Black.copy(alpha = 0.7f), style = Fill)
+                }
+
+                // Guide card positioned above the spotlight
+                if (targetRect != null) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 32.dp)
+                            .align(Alignment.Center)
+                            .offset(y = (-48).dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(24.dp)
+                        ) {
+                            Text(text = title, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(text = desc, fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 22.sp)
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                TextButton(onClick = {
+                                    showGuide = false
+                                    themePrefs.setPdfGuideComplete()
+                                }) {
+                                    Text("Skip", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Button(
+                                    onClick = {
+                                        if (guideStep < 2) {
+                                            guideStep++
+                                        } else {
+                                            showGuide = false
+                                            themePrefs.setPdfGuideComplete()
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = com.stutool.stutool.ui.theme.BrandRed)
+                                ) {
+                                    Text(if (guideStep < 2) "Next" else "Done", color = Color.White)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -977,14 +1264,16 @@ fun ZoomablePdfPage(
 ) {
 
     var isTransforming by remember { mutableStateOf(false) }
-    
+    var zoomAnimationJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+
     val currentSharedScale by rememberUpdatedState(sharedScale)
-    
+
     val coroutineScope = rememberCoroutineScope()
-    
+
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-    
+
+
     var pageRatio by remember { mutableFloatStateOf(1f) }
     LaunchedEffect(pageIndex) {
         val size = viewModel.getPageSize(pageIndex)
@@ -1068,8 +1357,8 @@ fun ZoomablePdfPage(
         }
     }
 
-    // ── Pan Engine v2: Clean gesture ownership ──
-    // Rule: scale<=1 → Pager owns all. scale>1 → Page owns all panning.
+    // â”€â”€ Pan Engine v2: Clean gesture ownership â”€â”€
+    // Rule: scale<=1 â†’ Pager owns all. scale>1 â†’ Page owns all panning.
     // Pager only receives gestures when at the pager-axis boundary AND pushing past it.
     Box(
         modifier = Modifier
@@ -1096,14 +1385,14 @@ fun ZoomablePdfPage(
                         val centroid = event.calculateCentroid()
                         val pointerCount = event.changes.count { it.pressed }
 
-                        // ── Touch slop gate ──
+                        // â”€â”€ Touch slop gate â”€â”€
                         if (!pastSlop) {
                             accZoom *= zoomChange
                             accPan += panChange
                             val centroidSize = event.calculateCentroidSize(useCurrent = false)
                             val zoomMotion = kotlin.math.abs(1 - accZoom) * centroidSize
                             val panMotion = accPan.getDistance()
-                            
+
                             // When zoomed or multi-finger, consume immediately so the Pager
                             // never sees these events. Offset updates still wait for slop.
                             if (currentSharedScale > 1f || pointerCount > 1) {
@@ -1118,7 +1407,7 @@ fun ZoomablePdfPage(
                             if (!pastSlop) continue
                         }
 
-                        // ── Helper: calculate page boundaries at a given scale ──
+                        // â”€â”€ Helper: calculate page boundaries at a given scale â”€â”€
                         fun pageBounds(scale: Float): Pair<Float, Float> {
                             val dstR = currentViewerWidth / currentViewerHeight
                             val aW = if (pageRatio > dstR) currentViewerWidth else currentViewerHeight * pageRatio
@@ -1129,9 +1418,9 @@ fun ZoomablePdfPage(
                             )
                         }
 
-                        // ── Gesture processing ──
+                        // â”€â”€ Gesture processing â”€â”€
                         when {
-                            // ── Multi-finger: pinch-zoom (always consume) ──
+                            // â”€â”€ Multi-finger: pinch-zoom (always consume) â”€â”€
                             pointerCount > 1 -> {
                                 event.changes.forEach { if (it.pressed) it.consume() }
 
@@ -1143,13 +1432,13 @@ fun ZoomablePdfPage(
                                 val (mx, my) = pageBounds(newScale)
 
                                 offset = Offset(
-                                    x = ((offset.x + rel.x) * scaleRatio - rel.x + panChange.x).coerceIn(-mx, mx),
-                                    y = ((offset.y + rel.y) * scaleRatio - rel.y + panChange.y).coerceIn(-my, my)
+                                    x = (offset.x * scaleRatio - rel.x * (scaleRatio - 1f) + panChange.x).coerceIn(-mx, mx),
+                                    y = (offset.y * scaleRatio - rel.y * (scaleRatio - 1f) + panChange.y).coerceIn(-my, my)
                                 )
                                 if (currentSharedScale != newScale) onScaleChange(newScale)
                             }
 
-                            // ── Single-finger while zoomed: pan ──
+                            // â”€â”€ Single-finger while zoomed: pan â”€â”€
                             currentSharedScale > 1f -> {
                                 val (mx, my) = pageBounds(currentSharedScale)
                                 event.changes.forEach { if (it.pressed) it.consume() }
@@ -1173,15 +1462,15 @@ fun ZoomablePdfPage(
                                     val pushDelta = if (isHorizontalPager) panChange.x else panChange.y
                                     val dampenedDelta = pushDelta * BOUNDARY_PUSH_DAMPEN
                                     unconsumedBoundaryPush += dampenedDelta
-                                    
+
                                     // Visual overscroll (edge resistance) on paging axis, regular pan on cross axis
                                     offset = Offset(
                                         x = if (isHorizontalPager) offset.x + dampenedDelta else (offset.x + panChange.x).coerceIn(-mx, mx),
                                         y = if (!isHorizontalPager) offset.y + dampenedDelta else (offset.y + panChange.y).coerceIn(-my, my)
                                     )
-                                    
+
                                     android.util.Log.d("PdfPanLog", "Page $pageIndex | boundary pushing | acc=$unconsumedBoundaryPush | delta=$pushDelta | threshold=$triggerThreshold")
-                                    
+
                                     if (kotlin.math.abs(unconsumedBoundaryPush) > triggerThreshold) {
                                         boundaryTriggered = true
                                         val isNext = pushDelta < 0f
@@ -1191,15 +1480,52 @@ fun ZoomablePdfPage(
                                 }
                             }
 
-                            // ── 1x single-finger: don't consume, Pager owns scrolling ──
+                            // â”€â”€ 1x single-finger: don't consume, Pager owns scrolling â”€â”€
                         }
                     } while (event.changes.any { it.pressed })
-                    
+
                     isTransforming = false
                 }
             }
             .pointerInput(Unit) {
                 detectTapGestures(
+                    onDoubleTap = { tapOffset ->
+                        val targetScale = when {
+                            currentSharedScale < 2.4f -> 2.5f
+                            currentSharedScale < 4.9f -> 5f
+                            else -> 1f
+                        }
+
+                        val startScale = currentSharedScale
+                        val startOffset = offset
+                        val zoomFactor = targetScale / startScale
+
+                        val limitX = ((actualWidth * targetScale - currentViewerWidth) / 2f).coerceAtLeast(0f)
+                        val limitY = ((actualHeight * targetScale - currentViewerHeight) / 2f).coerceAtLeast(0f)
+
+                        val targetOffsetX = (startOffset.x * zoomFactor - (tapOffset.x - currentViewerWidth / 2f) * (zoomFactor - 1f)).coerceIn(-limitX, limitX)
+                        val targetOffsetY = (startOffset.y * zoomFactor - (tapOffset.y - currentViewerHeight / 2f) * (zoomFactor - 1f)).coerceIn(-limitY, limitY)
+
+                        zoomAnimationJob?.cancel()
+                        zoomAnimationJob = coroutineScope.launch {
+                            try {
+                                isTransforming = true
+                                androidx.compose.animation.core.Animatable(0f).animateTo(
+                                    targetValue = 1f,
+                                    animationSpec = androidx.compose.animation.core.tween(durationMillis = 250, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+                                ) {
+                                    val frac = this.value
+                                    onScaleChange(androidx.compose.ui.util.lerp(startScale, targetScale, frac))
+                                    offset = Offset(
+                                        androidx.compose.ui.util.lerp(startOffset.x, targetOffsetX, frac),
+                                        androidx.compose.ui.util.lerp(startOffset.y, targetOffsetY, frac)
+                                    )
+                                }
+                            } finally {
+                                isTransforming = false
+                            }
+                        }
+                    },
                     onTap = {
                         onSingleTap()
                     }
@@ -1222,9 +1548,9 @@ fun ZoomablePdfPage(
     }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// â”€â”€ PDF Bitmap Page Renderer + Selection Overlay â”€â”€
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+// Ã¢â€â‚¬Ã¢â€â‚¬ PDF Bitmap Page Renderer + Selection Overlay Ã¢â€â‚¬Ã¢â€â‚¬
+// Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
 
 @Composable
 fun ReflowPdfPage(
@@ -1283,18 +1609,18 @@ fun PdfReaderPageItem(
     val density = LocalDensity.current
     val viewerWidthInt = viewerWidth.toInt()
     val coroutineScope = rememberCoroutineScope()
-    
-    // ── Layer 1: Base bitmap (two-phase: fast 1× first, then upgrade to 1.5×) ──
+
+    // â”€â”€ Layer 1: Base bitmap (two-phase: fast 1Ã— first, then upgrade to 1.5Ã—) â”€â”€
     var baseBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
     LaunchedEffect(pageIndex) {
-        // Phase 1: Render at 1× width for instant display
+        // Phase 1: Render at 1Ã— width for instant display
         val fastBitmap = viewModel.getPageBitmap(pageIndex, viewerWidthInt)
         if (baseBitmap == null) {
             baseBitmap = fastBitmap
         }
     }
-    
-    // Phase 2: Upgrade to 1.5× for sharper text (non-blocking, only for settled page)
+
+    // Phase 2: Upgrade to 1.5Ã— for sharper text (non-blocking, only for settled page)
     LaunchedEffect(pageIndex, isSettled) {
         if (isSettled && baseBitmap != null) {
             val hqBitmap = viewModel.getPageBitmap(pageIndex, (viewerWidthInt * 1.5f).toInt())
@@ -1304,17 +1630,17 @@ fun PdfReaderPageItem(
         }
     }
 
-    // ── Layer 2: High-res zoom-level bitmap (rendered ONLY on gesture end) ──
+    // â”€â”€ Layer 2: High-res zoom-level bitmap (rendered ONLY on gesture end) â”€â”€
     var zoomBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
     // Track the zoom level the current zoomBitmap was rendered at
     var renderedZoomLevel by remember { mutableFloatStateOf(1f) }
 
-    // Detect gesture end: isTransforming transitions true→false
+    // Detect gesture end: isTransforming transitions trueâ†’false
     var prevIsTransforming by remember { mutableStateOf(false) }
 
     LaunchedEffect(isTransforming, scale) {
         val gestureEnded = prevIsTransforming && !isTransforming
-        
+
         prevIsTransforming = isTransforming
 
         if (scale <= 1.05f) {
@@ -1330,7 +1656,7 @@ fun PdfReaderPageItem(
             if (!gestureEnded) {
                 delay(350)
             }
-            
+
             val targetZoom = viewModel.snapToZoomLevel(scale)
             // Only re-render if we need a different zoom level
             if (targetZoom != renderedZoomLevel || zoomBitmap == null) {
@@ -1343,7 +1669,7 @@ fun PdfReaderPageItem(
         }
     }
 
-    // ── Defer text layout extraction until bitmap is ready AND page is settled ──
+    // â”€â”€ Defer text layout extraction until bitmap is ready AND page is settled â”€â”€
     // This prevents PDFBox from competing for I/O during initial render and scrolling
     val layoutState = produceState<PdfPageLayout?>(initialValue = null, pageIndex, baseBitmap != null, isSettled) {
         if (baseBitmap != null && isSettled) {
@@ -1375,6 +1701,7 @@ fun PdfReaderPageItem(
     } else null
 
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
     val customTextSelectionColors = TextSelectionColors(
         handleColor = MaterialTheme.colorScheme.primary,
         backgroundColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
@@ -1396,7 +1723,7 @@ fun PdfReaderPageItem(
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
 
                     // Main bitmap layer: graphicsLayer scales/translates the existing bitmap.
-                    // During active zoom this is the ONLY work done—no rendering, no allocation.
+                    // During active zoom this is the ONLY work doneâ€”no rendering, no allocation.
                     // Use baseBitmap for layout (aspect ratio), display best available bitmap.
                     val layoutBitmap = baseBitmap
                     val currentDisplay = zoomBitmap ?: baseBitmap
@@ -1422,7 +1749,7 @@ fun PdfReaderPageItem(
                                 colorFilter = colorFilter
                             )
                         }
-                        
+
                     } else {
                         CircularProgressIndicator(
                             color = MaterialTheme.colorScheme.primary,
@@ -1435,7 +1762,7 @@ fun PdfReaderPageItem(
                     val isSearchActive by viewModel.isSearchActive.collectAsState()
                     val searchResults by viewModel.searchResults.collectAsState()
                     val currentMatchIndex by viewModel.currentMatchIndex.collectAsState()
-                    
+
                     if (isSearchActive && layout != null && layoutBitmap != null) {
                         val pageMatches = searchResults.filter { it.pageIndex == pageIndex }
                         if (pageMatches.isNotEmpty()) {
@@ -1454,11 +1781,11 @@ fun PdfReaderPageItem(
                                 androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
                                     val scaleX = size.width / layout.pageWidth
                                     val scaleY = size.height / layout.pageHeight
-                                    
+
                                     for (match in pageMatches) {
                                         val isActiveMatch = match === activeMatch
                                         val highlightColor = if (isActiveMatch) Color(0x80FF9800) else Color(0x80FFEB3B)
-                                        
+
                                         for (bound in match.bounds) {
                                             val rawHeight = (bound.bottom - bound.top) * scaleY
                                             val padPx = rawHeight * HIGHLIGHT_VERTICAL_PAD_RATIO
@@ -1492,7 +1819,7 @@ fun SelectionOverlay(
     bitmapHeight: Float
 ) {
     val density = LocalDensity.current
-    
+
     // Scale factors between PDF points and Bitmap pixels
     val scaleX = bitmapWidth / layout.pageWidth
     val scaleY = bitmapHeight / layout.pageHeight
@@ -1503,7 +1830,7 @@ fun SelectionOverlay(
             val top = element.y * scaleY
             val width = element.width * scaleX
             val height = element.height * scaleY
-            
+
             val leftDp = with(density) { left.toDp() }
             val topDp = with(density) { top.toDp() }
             val widthDp = with(density) { (width + 2).toDp() } // Slight horizontal overlap for continuity
@@ -1526,13 +1853,39 @@ fun SelectionOverlay(
 @Composable
 fun TextSelectionSheet(
     pageIndex: Int,
+    pageCount: Int,
     viewModel: PdfReaderViewModel,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    val pageText = produceState(initialValue = "Extracting text...", pageIndex) {
-        value = viewModel.getPageText(pageIndex)
+    var includeNearby by remember { mutableStateOf(false) }
+
+    val pageText = produceState(initialValue = "Extracting text...", pageIndex, includeNearby) {
+        value = "Extracting text..."
+        if (!includeNearby) {
+            value = viewModel.getPageText(pageIndex)
+        } else {
+            val maxIndex = pageCount - 1
+            if (maxIndex < 0) {
+                value = "No pages available."
+                return@produceState
+            }
+            var end = minOf(maxIndex, pageIndex + 1)
+            val start = maxOf(0, end - 2)
+            end = minOf(maxIndex, start + 2)
+
+            val combinedText = buildString {
+                for (i in start..end) {
+                    append("--- Page ${i + 1} ---\n\n")
+                    append(viewModel.getPageText(i))
+                    if (i < end) append("\n\n")
+                }
+            }
+            value = combinedText
+        }
     }
+
+    val isExtracting = pageText.value == "Extracting text..."
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -1551,24 +1904,38 @@ fun TextSelectionSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Page ${pageIndex + 1} Text",
+                    if (!includeNearby) "Page ${pageIndex + 1} Text" else "Pages Text",
                     fontSize = 20.sp,
                     color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold
                 )
-                TextButton(onClick = {
-                    val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                    val clip = android.content.ClipData.newPlainText("PDF Page Text", pageText.value)
-                    clipboard.setPrimaryClip(clip)
-                }) {
-                    Icon(Icons.Default.ContentCopy, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                TextButton(
+                    onClick = {
+                        val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                        val clip = android.content.ClipData.newPlainText("PDF Page Text", pageText.value)
+                        clipboard.setPrimaryClip(clip)
+                    },
+                    enabled = !isExtracting
+                ) {
+                    Icon(Icons.Default.ContentCopy, contentDescription = null, tint = if (isExtracting) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Copy All", color = MaterialTheme.colorScheme.primary)
+                    Text("Copy All", color = if (isExtracting) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary)
                 }
             }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = includeNearby,
+                    onCheckedChange = { includeNearby = it },
+                    colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Include Nearby Pages", color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
+            }
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1590,9 +1957,9 @@ fun TextSelectionSheet(
     }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// â”€â”€ Bottom Sheet Components â”€â”€
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+// Ã¢â€â‚¬Ã¢â€â‚¬ Bottom Sheet Components Ã¢â€â‚¬Ã¢â€â‚¬
+// Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
 
 @Composable
 fun ModeButton(title: String, isSelected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
@@ -1654,9 +2021,9 @@ fun ToggleRow(label: String, icon: androidx.compose.ui.graphics.vector.ImageVect
     }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// â”€â”€ Go-to-Page Dialog â”€â”€
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// -----------------------------------------------------------------
+// -- Go-to-Page Dialog --
+// -----------------------------------------------------------------
 
 @Composable
 fun GoToPageDialog(
@@ -1674,7 +2041,7 @@ fun GoToPageDialog(
         text = {
             Column {
                 Text(
-                    "Enter a page number (1 â€“ $totalPages)",
+                    "Enter a page number (1 - $totalPages)",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 13.sp
                 )

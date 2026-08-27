@@ -53,7 +53,7 @@ fun MinimalTemplate(data: ResumeData) {
 
         if (contactItems.isNotEmpty()) {
             Text(
-                text = contactItems.joinToString("  •  "),
+                text = contactItems.joinToString("  â€¢  "),
                 fontSize = 10.sp,
                 color = Color.DarkGray,
                 modifier = Modifier.fillMaxWidth(),
@@ -106,7 +106,7 @@ fun MinimalTemplate(data: ResumeData) {
                         )
                         if (exp.startDate.isNotBlank() || exp.endDate.isNotBlank()) {
                             Text(
-                                text = "${exp.startDate} — ${exp.endDate}",
+                                text = "${exp.startDate} â€” ${exp.endDate}",
                                 fontSize = 10.sp,
                                 color = Color.DarkGray
                             )
@@ -191,8 +191,9 @@ fun MinimalTemplate(data: ResumeData) {
                                 withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
                                     append(proj.name)
                                 }
-                                if (proj.link.isNotBlank()) {
-                                    append(" | ${proj.link}")
+                                val validLinks = proj.links.filter { it.isNotBlank() }
+                                if (validLinks.isNotEmpty()) {
+                                    append(" | " + validLinks.joinToString(", "))
                                 }
                             },
                             fontSize = 11.sp,
@@ -211,7 +212,7 @@ fun MinimalTemplate(data: ResumeData) {
             Column(modifier = Modifier.padding(top = 20.dp)) {
                 TemplateSectionHeader("SKILLS")
                 Text(
-                    text = data.skills.joinToString("  •  "),
+                    text = data.skills.joinToString("  â€¢  "),
                     fontSize = 11.sp,
                     color = Color.Black,
                     fontFamily = FontFamily.SansSerif,
@@ -299,12 +300,12 @@ fun TemplateBulletPoints(description: String) {
         for (line in lines) {
             Row(verticalAlignment = Alignment.Top) {
                 Text(
-                    "•",
+                    "â€¢",
                     fontSize = 10.sp,
                     color = Color.Black,
                     modifier = Modifier.padding(end = 6.dp, top = 1.dp)
                 )
-                val cleanLine = line.trim().removePrefix("•").removePrefix("-").trim()
+                val cleanLine = line.trim().removePrefix("â€¢").removePrefix("-").trim()
                 Text(
                     cleanLine,
                     fontSize = 10.sp,
