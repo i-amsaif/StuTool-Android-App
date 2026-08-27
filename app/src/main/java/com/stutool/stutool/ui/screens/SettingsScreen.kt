@@ -88,8 +88,7 @@ fun SettingsScreen(
                         containerColor = glass.topBarSurface,
                         titleContentColor = MaterialTheme.colorScheme.onBackground,
                         navigationIconContentColor = MaterialTheme.colorScheme.onBackground
-                    ),
-                    windowInsets = WindowInsets(0)
+                    )
                 )
                 HorizontalDivider(
                     thickness = 0.5.dp,
