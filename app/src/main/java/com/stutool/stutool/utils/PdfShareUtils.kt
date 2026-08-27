@@ -67,9 +67,9 @@ object PdfShareUtils {
      * Resolves the best available readable File for a PDF document.
      *
      * Priority:
-     *  1. activeTempPdfFile  â€“ decrypted representation (protected PDFs)
-     *  2. localCopyPath      â€“ persisted internal copy (filesDir/pdf_copies/)
-     *  3. originalUri stream â€“ copy into the designated cache directory as a last resort
+     *  1. activeTempPdfFile  – decrypted representation (protected PDFs)
+     *  2. localCopyPath      – persisted internal copy (filesDir/pdf_copies/)
+     *  3. originalUri stream – copy into the designated cache directory as a last resort
      *
      * @param cacheSubDir the specific subdirectory inside cacheDir to use for the fallback copy
      *                    (e.g. "share_cache" or "print_cache"). Kept isolated so Share and Print
@@ -91,7 +91,7 @@ object PdfShareUtils {
             return copyFileToCache(context, activeTempPdfFile, sanitizedName, cacheSubDir)
         }
 
-        // 2. Persisted internal copy (filesDir/pdf_copies/) â€“ share directly, no further copy needed
+        // 2. Persisted internal copy (filesDir/pdf_copies/) – share directly, no further copy needed
         //    FileProvider covers this path via the "pdf_copies" entry in file_paths.xml
         if (!localCopyPath.isNullOrBlank()) {
             val localFile = File(localCopyPath)

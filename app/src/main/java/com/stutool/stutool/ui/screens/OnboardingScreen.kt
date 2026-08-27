@@ -758,7 +758,7 @@ private fun FeaturePage(
 
         Spacer(modifier = Modifier.height(headerToCards))
 
-        // Feature cards in 2Ã—2 grid â€” staggered per card
+        // Feature cards in 2Ã—2 grid — staggered per card
         val chunked = features.chunked(2)
         Column(
             verticalArrangement = Arrangement.spacedBy(cardGap),
@@ -849,7 +849,7 @@ private fun OnboardingFeatureCard(
                 .fillMaxWidth()
                 .padding(innerPadding)
         ) {
-            // Icon container (BrandRed bg, white icon â€” matching ToolCard pattern)
+            // Icon container (BrandRed bg, white icon — matching ToolCard pattern)
             Box(
                 modifier = Modifier
                     .size(iconContainerSize)

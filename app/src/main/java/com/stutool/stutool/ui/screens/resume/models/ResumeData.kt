@@ -305,10 +305,10 @@ fun ResumeData.formatForExport(): ResumeData {
             .filter { it.isNotBlank() }
             .map { line ->
                 var cleanLine = line
-                while (cleanLine.startsWith("-") || cleanLine.startsWith("â€¢") || cleanLine.startsWith("*")) {
+                while (cleanLine.startsWith("-") || cleanLine.startsWith("•") || cleanLine.startsWith("*")) {
                     cleanLine = cleanLine.substring(1).trim()
                 }
-                "â€¢ $cleanLine"
+                "• $cleanLine"
             }
             .joinToString("\n")
     }
@@ -432,12 +432,12 @@ val FresherResumeData = ResumeData(
         Project(
             name = "StuTool",
             links = listOf("github.com/i-amsaif/StuTool"),
-            description = "â€¢ Built a cross-platform toolkit with a local PDF tool suite and resume builder.\nâ€¢ Developed in Kotlin with Jetpack Compose."
+            description = "• Built a cross-platform toolkit with a local PDF tool suite and resume builder.\n• Developed in Kotlin with Jetpack Compose."
         ),
         Project(
             name = "Finvovo",
             links = listOf("github.com/i-amsaif/Finvovo"),
-            description = "â€¢ Developed a Android App for Personal & Business Ledger Management.\nâ€¢ Developed in Kotlin with Jetpack Compose."
+            description = "• Developed a Android App for Personal & Business Ledger Management.\n• Developed in Kotlin with Jetpack Compose."
         )
     ),
     skills = listOf("React", "Kotlin", "Next.js", "Java", "HTML/CSS"),
@@ -479,21 +479,21 @@ val ExperiencedResumeData = ResumeData(
             position = "Senior Software Engineer",
             startDate = "Mar 2021",
             endDate = "Present",
-            description = "â€¢ Led a team of 8 engineers building microservices.\nâ€¢ Reduced system latency by 40% through Redis caching."
+            description = "• Led a team of 8 engineers building microservices.\n• Reduced system latency by 40% through Redis caching."
         ),
         Experience(
             company = "Infosys Limited",
             position = "Software Engineer",
             startDate = "Jul 2018",
             endDate = "Feb 2021",
-            description = "â€¢ Maintained 3 enterprise MERN web applications.\nâ€¢ Improved API response times by 35%."
+            description = "• Maintained 3 enterprise MERN web applications.\n• Improved API response times by 35%."
         )
     ),
     projects = listOf(
         Project(
             name = "Open Source Analytics Dashboard",
             links = listOf("github.com/i-amsaif/analytics-dash"),
-            description = "â€¢ Built a lightweight dashboard used by 500+ developers."
+            description = "• Built a lightweight dashboard used by 500+ developers."
         )
     ),
     skills = listOf("React", "Next.js", "Node.js", "TypeScript", "AWS", "MongoDB"),

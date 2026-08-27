@@ -383,7 +383,7 @@ fun ResumeBuilderScreen(
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
-                                "Generating PDFâ€¦",
+                                "Generating PDF…",
                                 color = MaterialTheme.colorScheme.onBackground,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium

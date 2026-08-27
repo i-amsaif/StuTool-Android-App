@@ -67,21 +67,40 @@ class ResumeViewModel(application: Application) : AndroidViewModel(application) 
         loadData()
     }
 
+    /**
+     * Repairs legacy mojibake sequences in saved JSON.
+     * Earlier versions stored corrupted UTF-8 characters due to a
+     * CP-1252/UTF-8 source-file encoding mismatch.
+     */
+    private fun migrateEncoding(json: String): String {
+        return json
+            .replace("\u00e2\u20ac\u00a2", "\u2022")   // corrupted bullet -> bullet
+            .replace("\u00e2\u20ac\u201d", "\u2014")   // corrupted em-dash -> em-dash
+            .replace("\u00e2\u20ac\u201c", "\u2013")   // corrupted en-dash -> en-dash
+            .replace("\u00e2\u20ac\u00a6", "\u2026")   // corrupted ellipsis -> ellipsis
+            .replace("\u00e2\u2014\u2020", "\u25c6")   // corrupted diamond -> diamond
+    }
+
     private fun loadData() {
         try {
             val savedJson = prefs.getString("resume_draft", null)
             val savedTemplate = prefs.getString("resume_template", "minimal")
             if (savedJson != null) {
+                val cleanJson = migrateEncoding(savedJson)
                 _uiState.update {
                     it.copy(
-                        resumeData = ResumeData.fromJson(savedJson),
+                        resumeData = ResumeData.fromJson(cleanJson),
                         selectedTemplate = savedTemplate ?: "minimal"
                     )
+                }
+                // Persist the cleaned JSON so migration runs only once
+                if (cleanJson != savedJson) {
+                    prefs.edit().putString("resume_draft", cleanJson).apply()
                 }
             }
         } catch (e: Exception) {
             android.util.Log.e("ResumeVM", "Failed to load saved resume data", e)
-            // Retain default empty ResumeData â€” user data is preserved in prefs
+            // Retain default empty ResumeData — user data is preserved in prefs
             // for manual recovery if needed
         }
     }

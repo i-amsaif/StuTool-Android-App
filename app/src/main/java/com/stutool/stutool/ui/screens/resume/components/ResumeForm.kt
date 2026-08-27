@@ -271,7 +271,7 @@ fun ResumeForm(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        "Keep it short (2â€“3 lines). Focus on skills and goals relevant to the role.",
+                        "Keep it short (2–3 lines). Focus on skills and goals relevant to the role.",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp
                     )
@@ -300,7 +300,7 @@ fun ResumeForm(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    "Uses AI â€¢ Internet required â€¢ Start with a rough objective",
+                                    "Uses AI • Internet required • Start with a rough objective",
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                                     fontSize = 10.sp,
                                     lineHeight = 14.sp

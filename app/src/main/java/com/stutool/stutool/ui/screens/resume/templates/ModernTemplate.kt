@@ -186,7 +186,7 @@ fun ModernTemplate(data: ResumeData) {
                             if (exp.company.isNotBlank()) append(exp.company)
                             if (exp.startDate.isNotBlank() || exp.endDate.isNotBlank()) {
                                 if (isNotEmpty()) append("  |  ")
-                                append("${exp.startDate} â€” ${exp.endDate}")
+                                append("${exp.startDate} — ${exp.endDate}")
                             }
                         }
                         if (detailsRow.isNotBlank()) {
@@ -400,12 +400,12 @@ private fun ModernBulletPoints(description: String) {
         for (line in lines) {
             Row(verticalAlignment = Alignment.Top) {
                 Text(
-                    "â€¢",
+                    "•",
                     fontSize = 10.sp,
                     color = Color.DarkGray,
                     modifier = Modifier.padding(end = 6.dp)
                 )
-                val cleanLine = line.trim().removePrefix("â€¢").removePrefix("-").trim()
+                val cleanLine = line.trim().removePrefix("•").removePrefix("-").trim()
                 Text(
                     cleanLine,
                     fontSize = 10.sp,

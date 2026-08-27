@@ -373,7 +373,7 @@ private fun resolveAccessibleUri(pdf: RecentPdf, context: android.content.Contex
         val file = java.io.File(uri.path ?: return null)
         return if (file.exists()) pdf.uri else fallbackToLocalCopy(pdf)
     }
-    // For content:// URIs, attempt to open a descriptor â€” SecurityException = permission gone
+    // For content:// URIs, attempt to open a descriptor — SecurityException = permission gone
     return try {
         context.contentResolver.openFileDescriptor(uri, "r")?.close()
         pdf.uri // original still accessible
@@ -443,7 +443,7 @@ fun RecentPdfItem(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "â€¢",
+                        text = "•",
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                         fontSize = 12.sp
                     )
@@ -456,7 +456,7 @@ fun RecentPdfItem(
                     if (pdf.pageCount != null) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "â€¢",
+                            text = "•",
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                             fontSize = 12.sp
                         )

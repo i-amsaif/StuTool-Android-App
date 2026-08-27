@@ -101,7 +101,7 @@ private val BOTTOM_BAR_ROUTES = listOf(
     Screen.Tools.route
 )
 
-// Routes that belong to an isolated splash experience â€” the shell must never
+// Routes that belong to an isolated splash experience — the shell must never
 // render while ANY of these routes is still visible (including during animations).
 private val SPLASH_ROUTES = setOf(
     "splash_screen",

@@ -176,7 +176,7 @@ private fun PolicyBulletList(items: List<String>) {
         items.forEach { item ->
             Row {
                 Text(
-                    text = "â€¢",
+                    text = "•",
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(end = 8.dp)
