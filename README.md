@@ -4,13 +4,12 @@
 
 [![Made with Kotlin](https://img.shields.io/badge/Made%20with-Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-4285F4?style=for-the-badge&logo=jetpack-compose&logoColor=white)](https://developer.android.com/jetpack/compose)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](./LICENSE)
 [![GitHub Stars](https://img.shields.io/github/stars/i-amsaif/StuTool-Android-App?style=for-the-badge)](https://github.com/i-amsaif/StuTool-Android-App)
 [![GitHub Issues](https://img.shields.io/github/issues/i-amsaif/StuTool-Android-App?style=for-the-badge)](https://github.com/i-amsaif/StuTool-Android-App/issues)
 
 **The All-in-One Android Companion for Students & Professionals**
 
-[🌐 Visit Website](https://www.stutool.in) • [📥 Download](#download) • [🚀 Getting Started](#-getting-started) • [📖 Documentation](#-documentation)
+[🌐 Visit Website](https://www.stutool.in) • [📥 Download](#-download) • [🚀 Getting Started](#-getting-started)
 
 </div>
 
@@ -138,11 +137,12 @@ StuTool is a **comprehensive productivity application** designed specifically fo
 
 <div align="center">
 
-| Platform | Status |
-|----------|--------|
-| Google Play Store | Coming Soon 🚀 |
-| Direct APK | [Available](#) |
-| F-Droid | Pending |
+| Platform | Link | Status |
+|----------|------|--------|
+| 🌐 **Website** | [stutool.in/android](https://www.stutool.in/android) | ✅ Available |
+| 🏪 **Indus AppStore** | [Play Now](https://indusapp.store/pl3q2rxo) | ✅ Available |
+| 📱 **Google Play Store** | Coming Soon | 🔄 In Review |
+| 📦 **GitHub Releases** | [Download APK](https://github.com/i-amsaif/StuTool-Android-App/releases) | ✅ Available |
 
 </div>
 
@@ -264,22 +264,12 @@ We welcome contributions from the community! Please follow these steps:
 4. **Push** to your branch (`git push origin feature/amazing-feature`)
 5. **Open** a Pull Request
 
-### Code Guidelines
-
-- Follow Kotlin naming conventions
-- Use meaningful variable names
-- Add comments for complex logic
-- Test your changes before submitting
-- Update documentation as needed
-
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.
 
 ---
 
 ## 📋 Roadmap
 
-- [ ] Google Play Store release
-- [ ] F-Droid integration
 - [ ] Tablet UI optimization
 - [ ] Multi-language support
 - [ ] Cloud sync feature
@@ -312,16 +302,16 @@ For security vulnerabilities, please see [SECURITY.md](./SECURITY.md) for respon
 
 ## 📝 License
 
-This project is licensed under the **MIT License** - see the [LICENSE](./LICENSE) file for details.
+This project is licensed under the **MIT License**. See [LICENSE](./LICENSE) file for details.
 
 ---
 
 ## 🙋 Support & Community
 
-- 💬 [GitHub Discussions](#) - Ask questions
-- 📧 Email - [Get in touch](mailto:support@stutool.in)
-- 🌐 Website - [stutool.in](https://www.stutool.in)
-- 🐦 Twitter - [@StuToolOfficial](#)
+- 💬 [GitHub Issues](https://github.com/i-amsaif/StuTool-Android-App/issues) - Report bugs or suggest features
+- 📧 **Email** - [i.am.mohd.saif2006@gmail.com](mailto:i.am.mohd.saif2006@gmail.com)
+- 🌐 **Website** - [stutool.in](https://www.stutool.in)
+- 🌐 **Android** - [stutool.in/android](https://www.stutool.in/android)
 
 ---
 

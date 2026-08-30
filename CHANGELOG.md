@@ -8,8 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### 🎯 Planned Features
-- Google Play Store release
-- F-Droid integration
 - Tablet UI optimization
 - Multi-language support (i18n)
 - Cloud synchronization
@@ -19,9 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.1.0] - 2026-08-28
+## [1.0.1] - 2026-08-28
 
-### ✨ Added
+### 🐛 Fixed
+- Bug fixes and performance improvements
+
+---
+
+## [1.0.0] - 2026-07-31
+
+### ✨ Initial Release
 
 #### Core Features
 - **PDF Viewer** - Full-featured PDF document viewing with:
@@ -76,26 +81,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Efficient memory management
 - Fast app startup time
 
-### 📦 Dependencies
-
-```
-Kotlin: 1.9.0
-Android Gradle Plugin: 8.0.0
-Android SDK: API 24-34
-Jetpack Compose: 1.5.0
-Room: 2.5.2
-CameraX: 1.2.0
-```
-
-### 🚀 Initial Release Features
-- PDF viewing and management
-- Document scanning with edge detection
-- Resume building with templates
-- AI-powered content enhancement
-- Dark/Light theme support
-- Offline functionality
-- Clean, intuitive user interface
-
 ---
 
 ## Versioning
@@ -105,12 +90,6 @@ This project follows [Semantic Versioning](https://semver.org/):
 - **MAJOR** version when you make incompatible API changes
 - **MINOR** version when you add functionality in a backward compatible manner
 - **PATCH** version when you make backward compatible bug fixes
-
-### Version Format
-```
-MAJOR.MINOR.PATCH-PRERELEASE+BUILD
-v1.0.0-alpha+001
-```
 
 ---
 
@@ -130,7 +109,8 @@ v1.0.0-alpha+001
 
 - [GitHub Issues](https://github.com/i-amsaif/StuTool-Android-App/issues) - Report bugs or request features
 - [GitHub Releases](https://github.com/i-amsaif/StuTool-Android-App/releases) - Download releases
-- [Roadmap](#roadmap) - See what's coming next
+- [Website](https://www.stutool.in) - Visit our website
+- [Android Download](https://www.stutool.in/android) - Download the app
 
 ---
 
@@ -139,9 +119,9 @@ v1.0.0-alpha+001
 For questions or issues, please:
 1. Check existing [GitHub Issues](https://github.com/i-amsaif/StuTool-Android-App/issues)
 2. Create a new issue if your problem isn't listed
-3. Contact us at support@stutool.in
+3. Contact us at i.am.mohd.saif2006@gmail.com
 
 ---
 
-**Last Updated:** 2026-08-28  
+**Last Updated:** 2026-08-30  
 **Maintained by:** [@i-amsaif](https://github.com/i-amsaif)

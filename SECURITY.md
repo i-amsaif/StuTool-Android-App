@@ -6,7 +6,7 @@ If you discover a security vulnerability in StuTool, please **do not** create a 
 
 ### How to Report
 
-📧 **Email:** security@stutool.in
+📧 **Email:** i.am.mohd.saif2006@gmail.com
 
 **Please include:**
 - Description of the vulnerability
@@ -100,12 +100,12 @@ Typically, we aim to release patches within 7-14 days of receiving a credible re
 
 ## Supported Versions
 
-| Version | Supported          | Release Date | End of Life |
-|---------|------------------|--------------|------------|
-| 0.1.x   | ✅ Yes            | 2026-08-28   | TBD        |
-| < 0.1.0 | ❌ No             | -            | -          |
+| Version | Supported          | Release Date |
+|---------|------------------|---------------|
+| 1.0.1   | ✅ Yes            | 2026-08-28   |
+| 1.0.0   | ✅ Yes            | 2026-07-31   |
 
-Only the latest version receives security updates.
+Latest versions receive security updates.
 
 ---
 
@@ -159,13 +159,13 @@ cat build/reports/dependency-check-report.html
 
 ## Contact
 
-- 🔒 Security Issues: security@stutool.in
-- 💬 Other Questions: support@stutool.in
+- 📧 Security Issues: i.am.mohd.saif2006@gmail.com
 - 🌐 Website: https://www.stutool.in
+- 🌐 Android: https://www.stutool.in/android
 
 ---
 
-**Last Updated:** 2026-08-28  
+**Last Updated:** 2026-08-30  
 **Maintained by:** [@i-amsaif](https://github.com/i-amsaif)
 
 ---
