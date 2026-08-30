@@ -49,7 +49,7 @@ Before creating bug reports, please check the [issue list](https://github.com/i-
 
 ### 💡 Suggesting Features
 
-We love feature suggestions! Before creating a request, check the [issues](https://github.com/i-amsaif/StuTool-Android-App/issues) and [roadmap](#roadmap).
+We love feature suggestions! Before creating a request, check the [issues](https://github.com/i-amsaif/StuTool-Android-App/issues) and [roadmap](./README.md#-roadmap).
 
 **Include in feature requests:**
 - **Use Case**: Why do you need this feature?
@@ -340,8 +340,8 @@ BREAKING CHANGE: Auth API now requires token refresh"
 
 ## ❓ Questions?
 
-- 💬 Use [GitHub Discussions](#)
-- 📧 Email us at support@stutool.in
+- 💬 Use [GitHub Issues](https://github.com/i-amsaif/StuTool-Android-App/issues)
+- 📧 Email: i.am.mohd.saif2006@gmail.com
 - 🌐 Visit [stutool.in](https://www.stutool.in)
 
 ---
