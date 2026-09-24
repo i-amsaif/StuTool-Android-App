@@ -142,7 +142,7 @@ StuTool is a **comprehensive productivity application** designed specifically fo
 | Platform | Link | Status |
 |----------|------|--------|
 | 🌐 **Website** | [stutool.in/android](https://www.stutool.in/android) | ✅ Available |
-| 🏪 **Indus AppStore** | [Play Now](https://indusapp.store/pl3q2rxo) | ✅ Available |
+| 🏪 **Indus AppStore** | [Download](https://indusapp.store/pl3q2rxo) | ✅ Available |
 | 📱 **Google Play Store** | [Download StuTool](https://play.google.com/store/apps/details?id=com.stutool.stutool) | ✅ Available |
 | 📦 **GitHub Releases** | [Download APK](https://github.com/i-amsaif/StuTool-Android-App/releases) | ✅ Available |
 
