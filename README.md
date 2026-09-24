@@ -9,7 +9,9 @@
 
 **The All-in-One Android Companion for Students & Professionals**
 
-[🌐 Visit Website](https://www.stutool.in) • [📥 Download](#-download) • [🚀 Getting Started](#-getting-started)
+[🌐 Visit Website](https://www.stutool.in) • [📥 Download on Google Play](https://play.google.com/store/apps/details?id=com.stutool.stutool) • [🚀 Getting Started](#-getting-started)
+
+[![Get it on Google Play](https://img.shields.io/badge/Get%20it%20on-Google%20Play-414141?style=for-the-badge&logo=google-play&logoColor=white)](https://play.google.com/store/apps/details?id=com.stutool.stutool)
 
 </div>
 
@@ -17,7 +19,7 @@
 
 ## ✨ About StuTool
 
-StuTool is a **comprehensive productivity application** designed specifically for students and professionals who need to manage documents efficiently. Whether you're scanning class materials, editing PDFs, or building a professional resume, StuTool has you covered with **fast, offline-first performance** and an intuitive interface.
+StuTool is a **comprehensive productivity application** designed specifically for students and professionals who need to manage documents efficiently. Whether you're scanning class materials, editing PDFs, or creating a professional resume, StuTool brings the essential tools together in one fast, offline-first Android app.
 
 > **Optimize your productivity with smart document tools and AI-powered features.**
 
@@ -141,7 +143,7 @@ StuTool is a **comprehensive productivity application** designed specifically fo
 |----------|------|--------|
 | 🌐 **Website** | [stutool.in/android](https://www.stutool.in/android) | ✅ Available |
 | 🏪 **Indus AppStore** | [Play Now](https://indusapp.store/pl3q2rxo) | ✅ Available |
-| 📱 **Google Play Store** | Coming Soon | 🔄 In Review |
+| 📱 **Google Play Store** | [Download StuTool](https://play.google.com/store/apps/details?id=com.stutool.stutool) | ✅ Available |
 | 📦 **GitHub Releases** | [Download APK](https://github.com/i-amsaif/StuTool-Android-App/releases) | ✅ Available |
 
 </div>
