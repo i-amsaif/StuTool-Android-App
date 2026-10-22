@@ -1,8 +1,8 @@
 # 🤝 Contributing to StuTool
 
-First off, thank you for considering contributing to **StuTool**! It's people like you that make StuTool such a great tool.
+First off, thank you for considering contributing to **StuTool**! It's people like you that make StuTool such an empowering open-source tool for students and professionals.
 
-## 📋 Table of Contents
+## 📑 Table of Contents
 
 - [Code of Conduct](#code-of-conduct)
 - [How Can I Contribute?](#how-can-i-contribute)
@@ -10,29 +10,22 @@ First off, thank you for considering contributing to **StuTool**! It's people li
 - [Coding Standards](#coding-standards)
 - [Pull Request Process](#pull-request-process)
 - [Commit Messages](#commit-messages)
-- [Reporting Bugs](#reporting-bugs)
-- [Suggesting Features](#suggesting-features)
+- [Testing](#testing)
+- [Documentation](#documentation)
 
 ---
 
 ## 📜 Code of Conduct
 
-This project and everyone participating in it is governed by our Code of Conduct. By participating, you are expected to uphold this code. Please report unacceptable behavior to maintainers.
-
-### Our Pledge
-
-We are committed to providing a welcoming and inspiring community for all. We pledge to:
-- Be respectful and inclusive
-- Welcome people from all backgrounds
-- Create a harassment-free environment
+This project and everyone participating in it is governed by our [Code of Conduct](./CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to maintainers.
 
 ---
 
-## 🎯 How Can I Contribute?
+## 💡 How Can I Contribute?
 
 ### 🐛 Reporting Bugs
 
-Before creating bug reports, please check the [issue list](https://github.com/i-amsaif/StuTool-Android-App/issues) to avoid duplicates.
+Before creating bug reports, please check the [GitHub Issues list](https://github.com/i-amsaif/StuTool-Android-App/issues) to avoid duplicates.
 
 **When filing a bug report, include:**
 - **Title**: Clear, descriptive title
@@ -41,34 +34,27 @@ Before creating bug reports, please check the [issue list](https://github.com/i-
 - **Expected Behavior**: What should happen
 - **Actual Behavior**: What actually happened
 - **Environment**:
-  - Android version
-  - Device model
-  - App version
-  - Any relevant logs or crash reports
-- **Screenshots**: Visual evidence (if applicable)
+  - Android version & Device model
+  - App version (e.g., v1.2.0)
+  - Any relevant logcat output
+- **Screenshots / Videos**: Visual evidence (if applicable)
 
-### 💡 Suggesting Features
+### 🚀 Suggesting Features
 
-We love feature suggestions! Before creating a request, check the [issues](https://github.com/i-amsaif/StuTool-Android-App/issues) and [roadmap](./README.md#-roadmap).
+Feature suggestions are welcome! Before creating a request, check existing [issues](https://github.com/i-amsaif/StuTool-Android-App/issues) and our [roadmap](./README.md#-roadmap).
 
 **Include in feature requests:**
-- **Use Case**: Why do you need this feature?
-- **Description**: Clear explanation of the feature
-- **Benefits**: How it improves the app
-- **Possible Implementation**: If you have ideas
-- **Screenshots/Mockups**: Visual references (if applicable)
+- **Use Case**: Why is this feature needed?
+- **Description**: Clear explanation of the intended workflow
+- **Benefits**: How it improves productivity for users
+- **Screenshots / Mockups**: Visual references (if applicable)
 
-### 📝 Improving Documentation
+### 📚 Improving Documentation
 
-Documentation improvements are always welcome! You can:
-- Fix typos or clarify sections
-- Add examples or code snippets
-- Improve README or guides
-- Add API documentation
-
-### 💻 Contributing Code
-
-See [Development Setup](#development-setup) and [Pull Request Process](#pull-request-process).
+Documentation improvements are always appreciated:
+- Clarify existing sections or fix typos
+- Add architectural notes or code snippets
+- Improve quick-start guides
 
 ---
 
@@ -76,183 +62,111 @@ See [Development Setup](#development-setup) and [Pull Request Process](#pull-req
 
 ### Prerequisites
 
-```bash
-# Required
-- Android Studio Hedgehog or later
-- Android SDK 24+ (API level 24)
-- Kotlin 1.9+
+- Android Studio Koala / Ladybug or later
+- Android SDK 36 (Min SDK 24)
+- JDK 17
 - Git
-- JDK 11+
-```
 
 ### Local Setup
 
-1. **Fork the repository**
-   ```bash
-   # Click "Fork" on GitHub
-   ```
-
-2. **Clone your fork**
+1. **Fork the repository** on GitHub.
+2. **Clone your fork**:
    ```bash
    git clone https://github.com/YOUR_USERNAME/StuTool-Android-App.git
    cd StuTool-Android-App
    ```
-
-3. **Add upstream remote**
+3. **Add upstream remote**:
    ```bash
    git remote add upstream https://github.com/i-amsaif/StuTool-Android-App.git
    ```
-
-4. **Create a branch for your work**
+4. **Create a branch for your work**:
    ```bash
    git checkout -b feature/your-feature-name
    # or
    git checkout -b fix/your-bug-fix
    ```
-
-5. **Setup API Keys** (if needed)
-   ```bash
-   # Create local.properties in project root
-   echo "GEMINI_API_KEY=your_key" > local.properties
-   echo "GROQ_API_KEY=your_key" >> local.properties
+5. **Setup API Keys** (Optional):
+   Create a `local.properties` file in the project root if you want to test AI or cloud OCR features:
+   ```properties
+   GEMINI_API_KEY=your_key
+   GROQ_API_KEY=your_key
+   OPENROUTER_API_KEY=your_key
+   OCR_SPACE_API_KEY=your_key
+   WEB3FORMS_ACCESS_KEY=your_key
    ```
-
-6. **Open in Android Studio**
-   - File → Open
-   - Select the cloned directory
-   - Wait for Gradle sync to complete
+6. **Open in Android Studio**:
+   - File ➔ Open ➔ Select repository directory.
+   - Wait for Gradle sync to complete.
 
 ---
 
-## 💻 Coding Standards
+## 📐 Coding Standards
 
 ### Kotlin Style Guide
 
 We follow the [Kotlin Coding Conventions](https://kotlinlang.org/docs/coding-conventions.html).
 
-**Key Points:**
-- Use 4 spaces for indentation (no tabs)
-- Max line length: 120 characters
-- Use meaningful variable names
-- `val` over `var` when possible
-- Prefer immutability
+- Indentation: 4 spaces (no tabs)
+- Prefer immutability (`val` over `var`)
+- Explicit types for public APIs
+- Avoid magic numbers and strings (use Constants/Tokens)
 
 ### Naming Conventions
 
 ```kotlin
 // Classes - PascalCase
-class DocumentScanner { }
-class ResumBuilder { }
+class DocumentScannerScreen { }
+class ResumeViewModel { }
 
 // Functions & Variables - camelCase
-fun getDocumentPath() { }
-val isLoading = true
+fun getDocumentPath(): Uri { }
+val isProcessing = true
 
 // Constants - UPPER_SNAKE_CASE
 const val MAX_FILE_SIZE = 10_000_000
 
-// Private members - prefix with underscore
-private val _selectedItem = MutableLiveData<Item>()
+// Backing properties - prefix with underscore
+private val _uiState = MutableStateFlow<UiState>(UiState.Idle)
+val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 ```
 
 ### Compose Best Practices
 
-```kotlin
-// Keep composables focused and single-responsibility
-@Composable
-fun DocumentCard(document: Document) {
-    // Implementation
-}
-
-// Use meaningful parameter names
-@Composable
-fun MyScreen(
-    viewModel: MyViewModel = hiltViewModel(),
-    onNavigate: (String) -> Unit = {}
-) {
-    // Implementation
-}
-```
-
-### Code Quality
-
-- ✅ Write self-documenting code
-- ✅ Add comments for complex logic
-- ✅ Keep functions small and focused
-- ✅ Handle errors gracefully
-- ✅ Use type-safe approaches
-- ❌ Avoid deeply nested code
-- ❌ Avoid magic numbers (use constants)
-- ❌ Avoid suppressing warnings without reason
+- Keep Composables modular and single-responsibility.
+- Hoist state up to ViewModels when handling business logic or side effects.
+- Provide sensible defaults for optional modifier and lambda arguments.
+- Always handle edge cases like dark/light theme switching and screen rotation.
 
 ---
 
 ## 🔄 Pull Request Process
 
-### Before Creating a PR
+### Before Submitting a PR
 
-1. **Sync with upstream**
+1. **Sync with upstream**:
    ```bash
    git fetch upstream
    git rebase upstream/main
    ```
-
-2. **Run tests locally**
+2. **Run tests**:
    ```bash
-   ./gradlew test
-   ./gradlew androidTest
+   ./gradlew testDebugUnitTest
    ```
-
-3. **Check code quality**
-   ```bash
-   ./gradlew lint
-   ```
-
-4. **Ensure code follows standards**
-   - No unused imports
-   - Proper formatting
-   - No console/debug logs in production code
+3. **Verify Git cleanliness**:
+   - Ensure zero build artifacts (`.apk`, `.aab`), keystores, or API keys are staged.
 
 ### Creating a PR
 
-1. **Push your branch**
+1. Push your branch:
    ```bash
    git push origin feature/your-feature-name
    ```
-
-2. **Go to GitHub** and create a Pull Request
-   - Base: `main` branch of `i-amsaif/StuTool-Android-App`
-   - Compare: Your feature branch
-
-3. **Fill PR template** with:
-   - Clear title (use conventional commits)
-   - Description of changes
-   - Related issues (fixes #123)
-   - Screenshots (if UI changes)
-   - Testing notes
-   - Checklist completion
-
-### PR Checklist
-
-```markdown
-- [ ] Code follows style guidelines
-- [ ] I have performed a self-review
-- [ ] I have commented complex areas
-- [ ] No new warnings generated
-- [ ] Tests added/updated
-- [ ] Documentation updated
-- [ ] No breaking changes (or documented)
-```
-
-### Review & Merge
-
-- Maintainers will review your PR
-- Respond to feedback and make requested changes
-- Once approved, your PR will be merged!
+2. Open a Pull Request against `main`.
+3. Provide a clear summary of changes, linked issues, and screenshots for UI modifications.
 
 ---
 
-## 📝 Commit Messages
+## 💬 Commit Messages
 
 Use [Conventional Commits](https://www.conventionalcommits.org/) format:
 
@@ -260,94 +174,39 @@ Use [Conventional Commits](https://www.conventionalcommits.org/) format:
 <type>(<scope>): <subject>
 
 <body>
-
-<footer>
 ```
 
-### Types
+### Common Types
 
 - `feat:` - A new feature
 - `fix:` - A bug fix
 - `docs:` - Documentation changes
-- `style:` - Formatting, linting (no code change)
+- `style:` - Formatting (no code changes)
 - `refactor:` - Code restructuring
-- `perf:` - Performance improvement
+- `perf:` - Performance optimization
 - `test:` - Adding or updating tests
-- `chore:` - Build, dependencies, tooling
-
-### Examples
-
-```bash
-# Feature
-git commit -m "feat(scanner): add document edge detection"
-
-# Bug fix
-git commit -m "fix(pdf): resolve crash on large file loading"
-
-# Documentation
-git commit -m "docs: update setup instructions"
-
-# Refactor with breaking change
-git commit -m "refactor(api): restructure authentication flow
-
-BREAKING CHANGE: Auth API now requires token refresh"
-```
+- `chore:` - Tooling, build config, dependencies
 
 ---
 
 ## 🧪 Testing
 
-### Running Tests
-
 ```bash
-# Unit tests
-./gradlew test
+# Run unit & Robolectric tests
+./gradlew testDebugUnitTest
 
-# Android instrumented tests
-./gradlew connectedAndroidTest
-
-# All tests
-./gradlew testDebugUnitTest connectedDebugAndroidTest
+# Run on connected device
+./gradlew connectedDebugAndroidTest
 ```
 
-### Writing Tests
-
-- Write tests for new features
-- Update tests for modified features
-- Aim for reasonable coverage
-- Use clear test names
-
 ---
 
-## 📚 Documentation
+## 📬 Questions & Community
 
-### When to Update Docs
-
-- Adding new features → Update README
-- Changing APIs → Update inline documentation
-- New setup steps → Update guides
-- Bug fixes → Update if documentation was wrong
-
-### Style Guide for Docs
-
-- Use clear, simple language
-- Include code examples
-- Add screenshots for UI features
-- Link to related resources
-- Keep consistent formatting
+- 🐛 [GitHub Issues](https://github.com/i-amsaif/StuTool-Android-App/issues)
+- ✉️ Email: [i.am.mohd.saif2006@gmail.com](mailto:i.am.mohd.saif2006@gmail.com)
+- 🌐 Website: [stutool.in](https://www.stutool.in)
 
 ---
-
-## ❓ Questions?
-
-- 💬 Use [GitHub Issues](https://github.com/i-amsaif/StuTool-Android-App/issues)
-- 📧 Email: i.am.mohd.saif2006@gmail.com
-- 🌐 Visit [stutool.in](https://www.stutool.in)
-
----
-
-## 🎉 Thank You!
-
-Thank you for contributing to StuTool! Your efforts help make this project better for everyone.
 
 **Happy coding! 🚀**

@@ -1,15 +1,16 @@
-# 📚 StuTool - Android App
+# 📱 StuTool - Android App
 
 <div align="center">
 
 [![Made with Kotlin](https://img.shields.io/badge/Made%20with-Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-4285F4?style=for-the-badge&logo=jetpack-compose&logoColor=white)](https://developer.android.com/jetpack/compose)
+[![Version](https://img.shields.io/badge/Version-1.2.0-22C55E?style=for-the-badge)](https://github.com/i-amsaif/StuTool-Android-App/releases)
 [![GitHub Stars](https://img.shields.io/github/stars/i-amsaif/StuTool-Android-App?style=for-the-badge)](https://github.com/i-amsaif/StuTool-Android-App)
 [![GitHub Issues](https://img.shields.io/github/issues/i-amsaif/StuTool-Android-App?style=for-the-badge)](https://github.com/i-amsaif/StuTool-Android-App/issues)
 
-**The All-in-One Android Companion for Students & Professionals**
+**The All-in-One Android Document & Productivity Companion for Students & Professionals**
 
-[🌐 Visit Website](https://www.stutool.in) • [📥 Download on Google Play](https://play.google.com/store/apps/details?id=com.stutool.stutool) • [🚀 Getting Started](#-getting-started)
+[🌐 Visit Website](https://www.stutool.in) • [📲 Download on Google Play](https://play.google.com/store/apps/details?id=com.stutool.stutool) • [🚀 Getting Started](#-getting-started)
 
 [![Get it on Google Play](https://img.shields.io/badge/Get%20it%20on-Google%20Play-414141?style=for-the-badge&logo=google-play&logoColor=white)](https://play.google.com/store/apps/details?id=com.stutool.stutool)
 
@@ -17,66 +18,88 @@
 
 ---
 
-## ✨ About StuTool
+## 📖 About StuTool
 
-StuTool is a **comprehensive productivity application** designed specifically for students and professionals who need to manage documents efficiently. Whether you're scanning class materials, editing PDFs, or creating a professional resume, StuTool brings the essential tools together in one fast, offline-first Android app.
+StuTool is a **comprehensive productivity and document management suite** engineered for Android. Built with Jetpack Compose and modern Material 3, StuTool empowers students, job seekers, and working professionals with fast, offline-first tools: multi-format document reading, intelligent camera scanning, professional resume building, and powerful conversion utilities (PDF to Word, Excel, and Image, plus dual-engine OCR).
 
-> **Optimize your productivity with smart document tools and AI-powered features.**
+> **Manage, convert, view, and create documents effortlessly — fast, secure, and privacy-focused.**
 
 ---
 
-## 🎯 Features
+## ✨ Features & Tools
 
 <table>
   <tr>
     <td width="50%">
-      <h3>📄 PDF Management</h3>
+      <h3>📄 Multi-Format Document Viewer</h3>
       <ul>
-        <li>Open & view PDF documents</li>
-        <li>Organize and manage your library</li>
-        <li>Smooth scrolling & zoom controls</li>
-        <li>Full-text search capability</li>
+        <li><b>PDF, TXT, DOCX & XLSX</b> native reader</li>
+        <li>Continuous vertical scrolling & pinch-to-zoom</li>
+        <li>Full-text search with instant jump navigation</li>
+        <li>Interactive PDF hyperlink support</li>
+        <li>Direct system file opener (<code>VIEW</code> & <code>SEND</code> intents)</li>
       </ul>
     </td>
     <td width="50%">
-      <h3>🎓 Resume Builder</h3>
+      <h3>🔄 PDF Conversion & Utilities</h3>
       <ul>
-        <li>Create ATS-friendly resumes</li>
-        <li>Professional templates</li>
-        <li>AI-powered suggestions</li>
-        <li>Export as PDF</li>
+        <li><b>PDF to Image</b>: High-res JPG/PNG export & zip archive</li>
+        <li><b>PDF to Word (.docx)</b>: Editable document extraction</li>
+        <li><b>PDF to Excel (.xlsx)</b>: Tabular spreadsheet parsing</li>
+        <li><b>Compress PDF</b>: Quick file size reduction</li>
       </ul>
     </td>
   </tr>
   <tr>
     <td width="50%">
-      <h3>📸 Document Scanner</h3>
+      <h3>🔍 Dual-Engine OCR System</h3>
       <ul>
-        <li>Scan documents with camera</li>
-        <li>Intelligent edge detection</li>
-        <li>Auto-cropping & perspective fix</li>
-        <li>High-quality output</li>
+        <li><b>Offline-First</b>: On-device ML Kit & Tesseract 4 Android</li>
+        <li><b>Multi-Language</b>: English, Kannada, and Hindi support</li>
+        <li>Smart native text detection before running OCR</li>
+        <li>Privacy dialog with optional OCR.space cloud fallback</li>
       </ul>
     </td>
     <td width="50%">
-      <h3>🤖 AI Integration</h3>
+      <h3>📝 Resume Builder 2.0</h3>
       <ul>
-        <li>Powered by Gemini, Groq & OpenRouter</li>
-        <li>Smart text extraction</li>
-        <li>Content enhancement</li>
-        <li>Context-aware suggestions</li>
+        <li>ATS-friendly professional resume templates</li>
+        <li>New <b>Career Timeline</b> & <b>Executive Slate</b> designs</li>
+        <li>Dynamic multi-page pagination engine (no awkward cutoffs)</li>
+        <li>Pre-filled sample data toggle for fast drafting</li>
+        <li>Instant high-fidelity vector PDF export</li>
+      </ul>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <h3>📷 Intelligent Document Scanner</h3>
+      <ul>
+        <li>Real-time camera scanning via CameraX</li>
+        <li>Refined 4-point perspective crop editor</li>
+        <li>Corner magnifier loupe with haptic tactile feedback</li>
+        <li>Multi-page batch scanning into single PDF</li>
+      </ul>
+    </td>
+    <td width="50%">
+      <h3>🎬 Interactive Video Tutorials</h3>
+      <ul>
+        <li>Built-in streaming video player (AndroidX Media3 ExoPlayer)</li>
+        <li>Step-by-step guides for Viewer, Scanner, and Resume Builder</li>
+        <li>One-tap replay options from settings & tool screens</li>
+        <li>Smart onboarding opt-in prompts</li>
       </ul>
     </td>
   </tr>
 </table>
 
-### 🌓 Additional Highlights
+### 💎 Key Highlights
 
-- **🎨 Modern UI/UX** - Clean, distraction-free interface
-- **🌙 Dark & Light Mode** - Full theme support
-- **⚡ Offline-First** - Works without internet
-- **🔒 Privacy Focused** - Your data, your control
-- **⚙️ Performance Optimized** - Smooth & responsive
+- **🎨 Modern Material 3 UI** - Clean, distraction-free interface with edge-to-edge design
+- **🌓 Dark & Light Modes** - Native dual-theme support with true black palette
+- **🔒 Privacy & Offline-First** - Core tools and OCR process on-device without cloud dependencies
+- **⚡ Memory-Safe Architecture** - Aggressive bitmap recycling to handle large multi-page PDFs
+- **🛡️ Secure Credential Handling** - Zero hardcoded API keys; safe environment & `local.properties` resolution
 
 ---
 
@@ -101,37 +124,20 @@ StuTool is a **comprehensive productivity application** designed specifically fo
 
 <div align="center">
 
-| Component | Technology |
-|-----------|----------|
-| **Language** | Kotlin |
-| **UI Framework** | Jetpack Compose |
+| Layer | Technologies |
+|---|---|
+| **Language** | Kotlin (1.9+) |
+| **UI Framework** | Jetpack Compose + Material 3 |
 | **Architecture** | MVVM + Clean Architecture |
-| **Database** | Room Database |
-| **Async** | Kotlin Coroutines & Flow |
-| **Networking** | Retrofit + OkHttp |
+| **Build System** | Android Gradle Plugin 8.13.2, Gradle 8.13, Target SDK 36, Min SDK 24 |
+| **Local Storage** | SharedPreferences & Document Repositories |
+| **Concurrency** | Kotlin Coroutines & Flow |
+| **Networking** | OkHttp 4.12.0 + Retrofit |
+| **Media & Video** | AndroidX Media3 (ExoPlayer 1.4.1) |
+| **OCR Engines** | Tesseract 4 Android 4.9.0 + Google ML Kit Text Recognition |
+| **Document Processing** | PDFBox-Android 2.0.27.0 + Custom OpenXML (DOCX / XLSX) Loaders |
 
 </div>
-
-### 📦 Key Libraries
-
-```
-🎨 UI & Rendering
-  • Jetpack Compose - Modern UI framework
-  • Material 3 - Google's design system
-  • Coil - Image loading
-
-📄 Document Handling
-  • PDFBox-Android - PDF manipulation
-  • UCrop - Image cropping
-  
-📷 Camera & Scanning
-  • CameraX - Camera functionality
-  • ML Kit - Machine learning features
-
-✨ Polish & Effects
-  • Shimmer - Loading animations
-  • Accompanist - Compose utilities
-```
 
 ---
 
@@ -140,10 +146,10 @@ StuTool is a **comprehensive productivity application** designed specifically fo
 <div align="center">
 
 | Platform | Link | Status |
-|----------|------|--------|
+|---|---|---|
 | 🌐 **Website** | [stutool.in/android](https://www.stutool.in/android) | ✅ Available |
-| 🏪 **Indus AppStore** | [Download](https://indusapp.store/pl3q2rxo) | ✅ Available |
-| 📱 **Google Play Store** | [Download StuTool](https://play.google.com/store/apps/details?id=com.stutool.stutool) | ✅ Available |
+| 🏬 **Google Play Store** | [Download StuTool](https://play.google.com/store/apps/details?id=com.stutool.stutool) | ✅ Available |
+| 🛍️ **Indus AppStore** | [Download](https://indusapp.store/pl3q2rxo) | ✅ Available |
 | 📦 **GitHub Releases** | [Download APK](https://github.com/i-amsaif/StuTool-Android-App/releases) | ✅ Available |
 
 </div>
@@ -154,179 +160,128 @@ StuTool is a **comprehensive productivity application** designed specifically fo
 
 ### Prerequisites
 
-- Android Studio Hedgehog or later
-- Android SDK 24+ (API level 24)
-- Kotlin 1.9+
-- Gradle 8.0+
+- Android Studio Koala / Ladybug or later
+- Android SDK 36 (Min SDK 24)
+- JDK 17
+- Git
 
 ### Installation Steps
 
-#### 1️⃣ Clone the Repository
+#### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/i-amsaif/StuTool-Android-App.git
 cd StuTool-Android-App
 ```
 
-#### 2️⃣ Setup API Keys
+#### 2. Configure Local Properties (Optional)
 
-Create a `local.properties` file in the root directory:
+Create or edit `local.properties` in the project root to supply optional external service keys:
 
 ```properties
-# API Keys (Optional - app works with placeholders)
+sdk.dir=/path/to/android/sdk
+
+# Optional AI / Cloud OCR keys (App falls back to local engines or placeholders if omitted)
 GEMINI_API_KEY=your_gemini_key_here
 GROQ_API_KEY=your_groq_key_here
 OPENROUTER_API_KEY=your_openrouter_key_here
+OCR_SPACE_API_KEY=your_ocr_space_key_here
+WEB3FORMS_ACCESS_KEY=your_web3forms_key_here
 ```
 
-> **Note:** The app will still build and function without these keys using placeholder values.
+> **Note:** StuTool builds and runs completely without these keys. Offline OCR, PDF rendering, document viewing, and resume building are 100% functional locally.
 
-#### 3️⃣ Build the Project
+#### 3. Build the Project
 
 Using Android Studio:
-1. Open the project
-2. Sync Gradle files
-3. Click **Run** (or press Shift+F10)
+1. Open the project directory
+2. Let Gradle sync dependencies
+3. Click **Run 'app'** (or press Shift+F10)
 
-**Or via command line:**
+Or via command line:
 
 ```bash
-# Debug build
+# Assemble Debug APK
 ./gradlew assembleDebug
 
-# Release build (requires signing config)
-./gradlew assembleRelease
-```
-
-#### 4️⃣ Run on Device/Emulator
-
-```bash
-./gradlew installDebug
+# Run Unit & Robolectric Tests
+./gradlew testDebugUnitTest
 ```
 
 ---
 
-## 📂 Project Structure
+## 📁 Project Structure
 
 ```
 StuTool-Android-App/
-├── app/                           # Main application module
-│   ├── src/main/
-│   │   ├── kotlin/com/stutool/   # Source code
-│   │   ├── res/                   # Resources
-│   │   └── AndroidManifest.xml
-│   ├── build.gradle.kts           # App-level build config
-│   └── proguard-rules.pro         # ProGuard rules
-├── gradle/                        # Gradle wrapper
-├── build.gradle.kts               # Project-level build config
-├── settings.gradle.kts            # Gradle settings
-├── local.properties               # Local config (git-ignored)
-└── README.md                      # This file
+├── app/
+│   ├── src/
+│   │   ├── main/
+│   │   │   ├── assets/              # Offline OCR traineddata & vector fonts
+│   │   │   │   ├── fonts/           # Noto Sans & Kannada typefaces
+│   │   │   │   └── tessdata/        # eng, hin, kan models
+│   │   │   ├── java/com/stutool/
+│   │   │   │   ├── data/            # Local repositories & remote clients
+│   │   │   │   ├── domain/          # PDF engine, OCR router, models
+│   │   │   │   ├── navigation/      # Jetpack Compose navigation graphs
+│   │   │   │   ├── tutorial/        # Media3 video tutorial system
+│   │   │   │   └── ui/              # Screens, components, resume templates
+│   │   │   └── AndroidManifest.xml  # Permissions & document file intent filters
+│   │   └── test/                    # Comprehensive unit & Robolectric test suite
+│   ├── build.gradle.kts             # App dependencies & secure BuildConfig
+│   └── proguard-rules.pro
+├── gradle/                          # Gradle wrapper & version catalogs (libs.versions.toml)
+├── CHANGELOG.md                     # Version release history
+├── CONTRIBUTING.md                  # Development guidelines
+├── SECURITY.md                      # Vulnerability reporting & key policy
+└── README.md
 ```
 
 ---
 
-## 🔧 Configuration
+## 🗺️ Roadmap
 
-### Android Manifest Permissions
-
-```xml
-<!-- Required -->
-<uses-permission android:name="android.permission.CAMERA" />
-<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-
-<!-- For AI features (if using) -->
-<uses-permission android:name="android.permission.INTERNET" />
-```
-
-### Build Variants
-
-```bash
-# Development
-./gradlew assembleDebug
-
-# Production
-./gradlew assembleRelease
-
-# Run tests
-./gradlew test
-./gradlew androidTest
-```
+- [x] Document Scanner with perspective crop
+- [x] Professional Resume Builder with multi-page pagination
+- [x] Multi-format Document Viewer (PDF, DOCX, XLSX, TXT)
+- [x] Dual-engine OCR (Offline ML Kit + Tesseract, Cloud fallback)
+- [x] PDF conversion suite (PDF to Image, Word, Excel)
+- [x] In-app video tutorial system
+- [ ] Tablet & foldable screen UI optimization
+- [ ] Full internationalization & app localization (i18n)
+- [ ] Cloud backup & sync options
+- [ ] Advanced PDF annotations (drawing, signatures)
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions from the community! Please follow these steps:
-
-1. **Fork** the repository
-2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
-3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
-4. **Push** to your branch (`git push origin feature/amazing-feature`)
-5. **Open** a Pull Request
-
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.
-
----
-
-## 📋 Roadmap
-
-- [ ] Tablet UI optimization
-- [ ] Multi-language support
-- [ ] Cloud sync feature
-- [ ] Collaborative document editing
-- [ ] Advanced PDF annotations
-- [ ] OCR integration
-
-See [CHANGELOG.md](./CHANGELOG.md) for release notes and version history.
-
----
-
-## 🐛 Issue Tracking
-
-Found a bug? Have a feature request? Please create an [issue](https://github.com/i-amsaif/StuTool-Android-App/issues)!
-
-**When reporting issues, please include:**
-- Device model & Android version
-- App version
-- Steps to reproduce
-- Expected vs actual behavior
-- Screenshots or logs (if applicable)
+Contributions are warmly welcomed! Please read [CONTRIBUTING.md](./CONTRIBUTING.md) for details on code style, commit conventions, and our pull request process.
 
 ---
 
 ## 🔒 Security
 
-For security vulnerabilities, please see [SECURITY.md](./SECURITY.md) for responsible disclosure.
+For security vulnerabilities and disclosure instructions, please consult [SECURITY.md](./SECURITY.md). Never submit credentials or API keys in pull requests.
 
 ---
 
-## 📝 License
+## 📄 License
 
-This project is licensed under the **MIT License**. See [LICENSE](./LICENSE) file for details.
+This project is licensed under the **MIT License**. See the [LICENSE](./LICENSE) file for details.
 
 ---
 
-## 🙋 Support & Community
+## 💬 Support & Contact
 
-- 💬 [GitHub Issues](https://github.com/i-amsaif/StuTool-Android-App/issues) - Report bugs or suggest features
-- 📧 **Email** - [i.am.mohd.saif2006@gmail.com](mailto:i.am.mohd.saif2006@gmail.com)
+- 🐛 [GitHub Issues](https://github.com/i-amsaif/StuTool-Android-App/issues) - Bug reports & feature requests
+- ✉️ **Email** - [i.am.mohd.saif2006@gmail.com](mailto:i.am.mohd.saif2006@gmail.com)
 - 🌐 **Website** - [stutool.in](https://www.stutool.in)
-- 🌐 **Android** - [stutool.in/android](https://www.stutool.in/android)
 
 ---
-
-## 👨‍💻 Author
-
-**StuTool** is developed and maintained by [i-amsaif](https://github.com/i-amsaif)
 
 <div align="center">
 
-**Made with ❤️ for students & professionals**
-
----
-
-[![Star History](https://api.star-history.com/svg?repos=i-amsaif/StuTool-Android-App&type=Date)](https://star-history.com/#i-amsaif/StuTool-Android-App&Date)
+**Developed with ❤️ by [@i-amsaif](https://github.com/i-amsaif) for students & professionals worldwide**
 
 </div>
