@@ -56,6 +56,26 @@ fun ToolsScreen(navController: NavController) {
             description = "Significantly reduce your PDF file size locally."
         ),
         Tool(
+            icon = Icons.Default.PhotoLibrary,
+            title = "PDF to Image",
+            description = "Convert PDF pages into high-quality JPEG or PNG images."
+        ),
+        Tool(
+            icon = Icons.Default.Search,
+            title = "OCR PDF",
+            description = "Extract text from scanned PDFs, images, and documents."
+        ),
+        Tool(
+            icon = Icons.Default.Description,
+            title = "PDF to Word",
+            description = "Convert PDFs into editable Word documents (DOCX)."
+        ),
+        Tool(
+            icon = Icons.Default.TableChart,
+            title = "PDF to Excel",
+            description = "Convert PDFs into editable Excel spreadsheets (XLSX)."
+        ),
+        Tool(
             icon = Icons.Default.CropFree,
             title = "Document Scanner",
             description = "Scan physical documents using your camera or import from gallery."
@@ -121,6 +141,10 @@ fun ToolsScreen(navController: NavController) {
                         "Multiple Pages per Sheet" -> { { navController.navigate(Screen.PagesPerSheet.route) } }
                         "Extract Pages" -> { { navController.navigate(Screen.ExtractPages.route) } }
                         "Compress PDF" -> { { navController.navigate(Screen.CompressPdf.route) } }
+                        "PDF to Image" -> { { navController.navigate(Screen.PdfToImage.route) } }
+                        "OCR PDF" -> { { navController.navigate(Screen.OcrPdf.route) } }
+                        "PDF to Word" -> { { navController.navigate(Screen.PdfToWord.route) } }
+                        "PDF to Excel" -> { { navController.navigate(Screen.PdfToExcel.route) } }
                         "Document Scanner" -> { { navController.navigate("scanner_camera") } }
                         else -> null
                     }

@@ -1,8 +1,5 @@
 package com.stutool.stutool.ui.screens
 
-import android.content.Intent
-import android.net.Uri
-import android.os.Build
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -12,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.*
@@ -25,12 +23,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.stutool.stutool.BuildConfig
+import com.stutool.stutool.data.remote.feedback.FeedbackRepository
+import com.stutool.stutool.data.remote.feedback.FeedbackSubmissionResult
 import com.stutool.stutool.ui.theme.BrandRed
 import com.stutool.stutool.ui.theme.LocalGlassTokens
 import kotlinx.coroutines.launch
-
-const val SUPPORT_EMAIL = "i.am.mohd.saif2006@gmail.com"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,87 +36,73 @@ fun FeedbackScreen(navController: NavController) {
     val glass = LocalGlassTokens.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val repository = remember { FeedbackRepository(context) }
 
-    var rating by remember { mutableStateOf(0) }
+    var rating by remember { mutableIntStateOf(0) }
     var feedbackText by remember { mutableStateOf("") }
     var showConfirmDialog by remember { mutableStateOf(false) }
+    var isSubmitting by remember { mutableStateOf(false) }
+    var isSubmitted by remember { mutableStateOf(false) }
+    var remainingCooldownMinutes by remember { mutableLongStateOf(repository.getRemainingCooldownMinutes()) }
     val maxChars = 1000
 
-    val sendEmail: () -> Unit = {
-        val subject = "StuTool Feedback (${rating}★)"
-        val appVersion = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
-        val androidVersion = Build.VERSION.RELEASE
-        val device = Build.MODEL
-        val manufacturer = Build.MANUFACTURER
+    val isInputLocked = isSubmitting || isSubmitted || remainingCooldownMinutes > 0
 
-        val body = """
-            StuTool Feedback
-
-            Rating:
-            ${"★".repeat(rating)}${"☆".repeat(5 - rating)}
-
-            ------------------------
-
-            Feedback:
-
-            ${feedbackText.ifBlank { "No comment provided." }}
-
-            ------------------------
-
-            App Version:
-            $appVersion
-
-            Android:
-            $androidVersion
-
-            Device:
-            $device
-
-            Manufacturer:
-            $manufacturer
-
-            ------------------------
-
-            Thank you for helping improve StuTool!
-        """.trimIndent()
-
-        val intent = Intent(Intent.ACTION_SENDTO).apply {
-            data = Uri.parse("mailto:")
-            putExtra(Intent.EXTRA_EMAIL, arrayOf(SUPPORT_EMAIL))
-            putExtra(Intent.EXTRA_SUBJECT, subject)
-            putExtra(Intent.EXTRA_TEXT, body)
-        }
-        
-        try {
-            context.startActivity(intent)
-            navController.navigateUp()
-        } catch (e: Exception) {
+    val submitFeedback = {
+        if (!isSubmitting && !isSubmitted && remainingCooldownMinutes <= 0) {
+            isSubmitting = true
             scope.launch {
-                snackbarHostState.showSnackbar(
-                    message = "No compatible email application found.",
-                    duration = SnackbarDuration.Short
-                )
+                when (val result = repository.submitFeedback(rating, feedbackText.trim())) {
+                    is FeedbackSubmissionResult.Success -> {
+                        isSubmitting = false
+                        isSubmitted = true
+                        remainingCooldownMinutes = repository.getRemainingCooldownMinutes()
+                        snackbarHostState.showSnackbar(
+                            message = "Review submitted successfully! Thank you for your feedback.",
+                            duration = SnackbarDuration.Short
+                        )
+                    }
+                    is FeedbackSubmissionResult.RateLimited -> {
+                        isSubmitting = false
+                        remainingCooldownMinutes = result.remainingMinutes
+                        snackbarHostState.showSnackbar(
+                            message = "Feedback submitted recently. Please wait ${result.remainingMinutes} min before submitting again.",
+                            duration = SnackbarDuration.Short
+                        )
+                    }
+                    is FeedbackSubmissionResult.Error -> {
+                        isSubmitting = false
+                        snackbarHostState.showSnackbar(
+                            message = result.message,
+                            duration = SnackbarDuration.Long
+                        )
+                    }
+                }
             }
         }
     }
 
     if (showConfirmDialog) {
         AlertDialog(
-            onDismissRequest = { showConfirmDialog = false },
+            onDismissRequest = { if (!isSubmitting) showConfirmDialog = false },
             title = { Text("Add a comment?") },
             text = { Text("Would you like to add a short comment? It helps us improve StuTool.") },
             confirmButton = {
-                TextButton(onClick = {
-                    showConfirmDialog = false
-                }) {
-                    Text("Add Comment", color = BrandRed)
+                TextButton(
+                    onClick = { showConfirmDialog = false },
+                    enabled = !isSubmitting
+                ) {
+                    Text("Add Comment", color = MaterialTheme.colorScheme.primary)
                 }
             },
             dismissButton = {
-                TextButton(onClick = {
-                    showConfirmDialog = false
-                    sendEmail()
-                }) {
+                TextButton(
+                    onClick = {
+                        showConfirmDialog = false
+                        submitFeedback()
+                    },
+                    enabled = !isSubmitting
+                ) {
                     Text("Send Anyway", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -164,7 +147,7 @@ fun FeedbackScreen(navController: NavController) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             // Rating Stars
             Row(
@@ -190,6 +173,7 @@ fun FeedbackScreen(navController: NavController) {
                                 scaleY = scale
                             }
                             .clickable(
+                                enabled = !isInputLocked,
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null
                             ) {
@@ -199,11 +183,12 @@ fun FeedbackScreen(navController: NavController) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             OutlinedTextField(
                 value = feedbackText,
-                onValueChange = { if (it.length <= maxChars) feedbackText = it },
+                onValueChange = { if (it.length <= maxChars && !isInputLocked) feedbackText = it },
+                readOnly = isInputLocked,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(180.dp),
@@ -224,30 +209,101 @@ fun FeedbackScreen(navController: NavController) {
                     .padding(top = 4.dp)
             )
 
+            if (isSubmitted || remainingCooldownMinutes > 0) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = "Success",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "Review Submitted",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                text = if (isSubmitted) {
+                                    "Thank you! Your feedback helps us improve StuTool."
+                                } else {
+                                    "Feedback submitted recently. You can submit another in ${remainingCooldownMinutes} min."
+                                },
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
+                            )
+                        }
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.weight(1f))
 
             Button(
                 onClick = {
-                    if (rating == 5 && feedbackText.isBlank()) {
-                        showConfirmDialog = true
-                    } else {
-                        sendEmail()
+                    if (!isInputLocked) {
+                        if (rating == 5 && feedbackText.isBlank()) {
+                            showConfirmDialog = true
+                        } else {
+                            submitFeedback()
+                        }
                     }
                 },
-                enabled = rating > 0,
+                enabled = rating > 0 && !isInputLocked,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
                     .padding(bottom = 16.dp),
                 shape = RoundedCornerShape(28.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = BrandRed,
-                    contentColor = Color.White,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                     disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                     disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 )
             ) {
-                Text("Send Feedback", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                if (isSubmitting) {
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text("Submitting...", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
+                } else if (isSubmitted || remainingCooldownMinutes > 0) {
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Review Submitted", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
+                } else {
+                    Text("Send Feedback", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                }
             }
         }
     }

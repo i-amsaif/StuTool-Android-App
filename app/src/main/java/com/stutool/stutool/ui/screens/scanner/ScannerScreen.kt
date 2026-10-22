@@ -46,8 +46,10 @@ import androidx.compose.material.icons.filled.Grid3x3
 import androidx.compose.material.icons.filled.Grid4x4
 import androidx.compose.material.icons.filled.GridOff
 import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.PlayCircleOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -84,6 +86,17 @@ fun ScannerScreen(
     // Permission state
     var hasCameraPermission by remember { mutableStateOf(false) }
     var showPermissionSettingsDialog by remember { mutableStateOf(false) }
+
+    val tutorialPrefs = remember { com.stutool.stutool.tutorial.TutorialPreferences(context) }
+    var showOptInDialog by rememberSaveable { mutableStateOf(false) }
+    var showPlayer by rememberSaveable { mutableStateOf(false) }
+    var sessionPromptHandled by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        if (!sessionPromptHandled && tutorialPrefs.shouldShowTutorialPrompt(com.stutool.stutool.tutorial.TutorialType.DOCUMENT_SCANNER)) {
+            showOptInDialog = true
+        }
+    }
 
     val settingsLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -211,7 +224,8 @@ fun ScannerScreen(
             CameraXViewfinder(
                 viewModel = viewModel,
                 navController = navController,
-                onGalleryClick = { galleryLauncher.launch("image/*") }
+                onGalleryClick = { galleryLauncher.launch("image/*") },
+                onReplayTutorial = { showPlayer = true }
             )
         } else {
             // Simple placeholder while asking for permission
@@ -304,6 +318,38 @@ fun ScannerScreen(
                 }
             }
         }
+
+        if (showOptInDialog) {
+            com.stutool.stutool.tutorial.TutorialOptInDialog(
+                tutorialType = com.stutool.stutool.tutorial.TutorialType.DOCUMENT_SCANNER,
+                onWatchTutorial = {
+                    showOptInDialog = false
+                    sessionPromptHandled = true
+                    showPlayer = true
+                },
+                onNoThanks = {
+                    showOptInDialog = false
+                    sessionPromptHandled = true
+                    tutorialPrefs.setTutorialDeclined(com.stutool.stutool.tutorial.TutorialType.DOCUMENT_SCANNER, true)
+                },
+                onDismissRequest = {
+                    showOptInDialog = false
+                    sessionPromptHandled = true
+                }
+            )
+        }
+
+        if (showPlayer) {
+            com.stutool.stutool.tutorial.TutorialPlayerDialog(
+                tutorialType = com.stutool.stutool.tutorial.TutorialType.DOCUMENT_SCANNER,
+                onDismiss = { completedOrDismissedByUser ->
+                    if (completedOrDismissedByUser) {
+                        tutorialPrefs.markTutorialSeen(com.stutool.stutool.tutorial.TutorialType.DOCUMENT_SCANNER)
+                    }
+                    showPlayer = false
+                }
+            )
+        }
     }
 }
 
@@ -315,7 +361,8 @@ fun ScannerScreen(
 private fun CameraXViewfinder(
     viewModel: ScannerViewModel,
     navController: NavController,
-    onGalleryClick: () -> Unit
+    onGalleryClick: () -> Unit,
+    onReplayTutorial: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -596,8 +643,22 @@ private fun CameraXViewfinder(
                     }
                 }
 
-                // Auto Capture Toggle removed
-
+                // Replay Tutorial
+                Box(
+                    modifier = Modifier
+                        .size(ScannerTokens.DenseTouchTarget)
+                        .clip(CircleShape)
+                        .background(Color.Transparent)
+                        .clickable { onReplayTutorial() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayCircleOutline,
+                        contentDescription = "Replay Tutorial",
+                        tint = ScannerTheme.colors.scannerTextPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
 

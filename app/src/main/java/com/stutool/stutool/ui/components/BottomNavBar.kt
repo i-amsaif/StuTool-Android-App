@@ -21,7 +21,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.stutool.stutool.navigation.Screen
 import com.stutool.stutool.ui.theme.LocalGlassTokens
@@ -61,7 +60,7 @@ fun BottomNavBar(
     // Shared navigation handler — preserves exact existing nav behavior
     val onNavigate: (Screen) -> Unit = { screen ->
         navController.navigate(screen.route) {
-            popUpTo(navController.graph.findStartDestination().id) {
+            popUpTo(Screen.Home.route) {
                 saveState = true
             }
             launchSingleTop = true

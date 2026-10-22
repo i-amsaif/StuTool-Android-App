@@ -73,23 +73,27 @@ object PdfExporter {
         // matching how the preview sets defaultMinSize(minHeight = singlePageHeight).
         val pdfPageHeightDp = pdfWidthDp * PaginationUtils.A4_RATIO
 
+        val registry = com.stutool.stutool.ui.screens.resume.utils.PaginationRegistry()
+
         val composeView = ComposeView(context).apply {
             setViewTreeLifecycleOwner(lifecycleOwner)
             setViewTreeSavedStateRegistryOwner(savedStateOwner)
 
             setContent {
-                Box(
-                    modifier = Modifier
-                        .width(pdfWidthDp)
-                        .defaultMinSize(minHeight = pdfPageHeightDp)
-                        .height(IntrinsicSize.Max)
-                ) {
-                    RenderResume(
-                        data = formattedData,
-                        template = template,
-                        pageWidth = pdfWidthDp,
-                        modifier = Modifier.fillMaxSize()
-                    )
+                androidx.compose.runtime.CompositionLocalProvider(com.stutool.stutool.ui.screens.resume.utils.LocalPaginationRegistry provides registry) {
+                    Box(
+                        modifier = Modifier
+                            .width(pdfWidthDp)
+                            .defaultMinSize(minHeight = pdfPageHeightDp)
+                            .height(IntrinsicSize.Max)
+                    ) {
+                        RenderResume(
+                            data = formattedData,
+                            template = template,
+                            pageWidth = pdfWidthDp,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
             }
         }
@@ -123,45 +127,74 @@ object PdfExporter {
             var currentStartY = 0f
 
             while (currentStartY < measuredHeight) {
+                val distinctBlocks = registry.blocks.distinctBy { it.top.toInt() }.sortedBy { it.top }
+
+                // If this is a continuation page (pageIndex > 0), but all blocks have already ended
+                // at or before currentStartY, stop so trailing container padding does not generate an empty page.
+                if (pageIndex > 0 && distinctBlocks.isNotEmpty() && distinctBlocks.none { it.bottom > currentStartY }) {
+                    break
+                }
+
                 val pageInfo = PdfDocument.PageInfo.Builder(pdfWidthPx, pdfHeightPx, pageIndex + 1).create()
                 val page = pdfDoc.startPage(pageInfo)
                 val canvas = page.canvas
 
-                // Header injection for multi-page documents
-                if (pageIndex > 0) {
-                    val headerHeight = PaginationUtils.getHeaderHeightPx(pdfWidthPx.toFloat())
+                // Determine safe sliceEndY based on block bounds
+                var sliceEndY = currentStartY + pdfHeightPx.toFloat()
 
-                    val bgPaint = android.graphics.Paint().apply {
-                        color = android.graphics.Color.WHITE
-                        style = android.graphics.Paint.Style.FILL
+                for (block in distinctBlocks) {
+                    if (block.top > currentStartY && block.top < sliceEndY && block.bottom > sliceEndY) {
+                        val blockHeight = block.bottom - block.top
+                        if (blockHeight <= pdfHeightPx.toFloat()) {
+                            sliceEndY = block.top
+                        }
                     }
-                    canvas.drawRect(0f, 0f, pdfWidthPx.toFloat(), headerHeight, bgPaint)
-
-                    val textPaint = android.graphics.Paint().apply {
-                        color = android.graphics.Color.DKGRAY
-                        textSize = 65f
-                        textAlign = android.graphics.Paint.Align.CENTER
-                        typeface = android.graphics.Typeface.create(android.graphics.Typeface.SANS_SERIF, android.graphics.Typeface.BOLD)
-                    }
-
-                    val displayName = formattedData.personal.name.ifBlank { "Resume" }
-                    val headerText = "$displayName • Continued"
-
-                    val bounds = android.graphics.Rect()
-                    textPaint.getTextBounds(headerText, 0, headerText.length, bounds)
-                    canvas.drawText(headerText, pdfWidthPx / 2f, (headerHeight / 2f) + (bounds.height() / 2f), textPaint)
                 }
 
+                // Ensure headers are not orphaned at the bottom of the page
+                val lastBlockOnPage = distinctBlocks.lastOrNull { it.top >= currentStartY && it.top < sliceEndY }
+                if (lastBlockOnPage != null && lastBlockOnPage.isHeader) {
+                    // Prevent empty pages: only push header to next page if there is already content on current page
+                    if (lastBlockOnPage.top > currentStartY) {
+                        sliceEndY = lastBlockOnPage.top
+                    }
+                }
+
+                if (sliceEndY <= currentStartY) {
+                    sliceEndY = currentStartY + pdfHeightPx.toFloat()
+                }
+
+                val actualContentEndY = sliceEndY.coerceAtMost(measuredHeight.toFloat())
+                val actualDrawnHeight = (actualContentEndY - currentStartY).coerceAtLeast(0f)
+
                 canvas.save()
-                val dY = PaginationUtils.getCanvasTranslationY(pageIndex, pdfWidthPx.toFloat())
-                canvas.translate(0f, dY)
+                canvas.clipRect(0f, 0f, pdfWidthPx.toFloat(), actualDrawnHeight)
+                canvas.translate(0f, -currentStartY)
                 composeView.draw(canvas)
                 canvas.restore()
 
+                // Fill the un-drawn gap at the bottom of the physical page with the Modern sidebar color
+                // so the grey sidebar stretches to the bottom regardless of where the text stops.
+                if (template.equals("modern", ignoreCase = true)) {
+                    if (actualDrawnHeight < pdfHeightPx.toFloat()) {
+                        val sidebarPaint = android.graphics.Paint().apply {
+                            color = android.graphics.Color.parseColor("#F0F0F0")
+                        }
+                        canvas.drawRect(
+                            0f,
+                            actualDrawnHeight,
+                            pdfWidthPx * 0.32f,
+                            pdfHeightPx.toFloat(),
+                            sidebarPaint
+                        )
+                    }
+                }
+
+                // (Header injection removed)
                 pdfDoc.finishPage(page)
 
+                currentStartY = sliceEndY
                 pageIndex++
-                currentStartY = PaginationUtils.getSourceBoundsForPage(pageIndex, pdfWidthPx.toFloat()).first
             }
 
             // Write to cache directory

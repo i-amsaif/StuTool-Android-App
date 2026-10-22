@@ -57,6 +57,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.foundation.Canvas
 import androidx.compose.ui.graphics.Path
@@ -117,8 +120,14 @@ fun PdfReaderScreen(
     val isLargeFile by viewModel.isLargeFile.collectAsState()
 
     val backgroundMode by viewModel.backgroundMode.collectAsState()
-    var sharedScale by remember(currentPdfUri) { mutableFloatStateOf(1f) }
-    var sharedOffset by remember(currentPdfUri) { mutableStateOf(Offset.Zero) }
+    val savedViewerScale by viewModel.viewerScale.collectAsState()
+    val savedViewerOffsetX by viewModel.viewerOffsetX.collectAsState()
+    val savedViewerOffsetY by viewModel.viewerOffsetY.collectAsState()
+    var sharedScale by remember(currentPdfUri) { mutableFloatStateOf(savedViewerScale) }
+    var sharedOffset by remember(currentPdfUri) { mutableStateOf(Offset(savedViewerOffsetX, savedViewerOffsetY)) }
+    LaunchedEffect(sharedScale, sharedOffset) {
+        viewModel.updateViewerTransform(sharedScale, sharedOffset.x, sharedOffset.y)
+    }
     val readingDirection by viewModel.readingDirection.collectAsState()
     val isReflow by viewModel.isReflowEnabled.collectAsState()
     val isKeepScreenOn by viewModel.isKeepScreenOn.collectAsState()
@@ -137,7 +146,9 @@ fun PdfReaderScreen(
 
     var showBookmarksSheet by remember { mutableStateOf(false) }
     var jumpToPage by remember { mutableStateOf<Int?>(null) }
-    var currentPage by remember { mutableIntStateOf(0) }
+    var storedPage by rememberSaveable { mutableIntStateOf(0) }
+    var currentPage by remember { mutableIntStateOf(storedPage) }
+    var activeHyperlink by remember { mutableStateOf<PdfLinkAnnotation?>(null) }
 
     LaunchedEffect(currentPage) {
         viewModel.preloadTextWindow(currentPage)
@@ -152,10 +163,17 @@ fun PdfReaderScreen(
     var showGuide by remember { mutableStateOf(false) }
     var guideStep by remember { mutableIntStateOf(0) }
     val themePrefs = com.stutool.stutool.data.local.ThemePreferences.getInstance(context)
+    val tutorialPrefs = remember { com.stutool.stutool.tutorial.TutorialPreferences(context) }
+    var showOptInDialog by rememberSaveable { mutableStateOf(false) }
+    var showPlayer by rememberSaveable { mutableStateOf(false) }
+    var sessionPromptHandled by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         if (!themePrefs.isPdfGuideComplete()) {
             showGuide = true
+        }
+        if (!sessionPromptHandled && tutorialPrefs.shouldShowTutorialPrompt(com.stutool.stutool.tutorial.TutorialType.PDF_VIEWER)) {
+            showOptInDialog = true
         }
     }
 
@@ -463,6 +481,14 @@ fun PdfReaderScreen(
                                         showGuide = true
                                     }
                                 )
+                                DropdownMenuItem(
+                                    text = { Text("Replay Tutorial", color = MaterialTheme.colorScheme.onSurface) },
+                                    leadingIcon = { Icon(Icons.Default.PlayCircleOutline, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                                    onClick = {
+                                        showMenu = false
+                                        showPlayer = true
+                                    }
+                                )
                             }
                         }
                     }
@@ -508,8 +534,6 @@ fun PdfReaderScreen(
                     onCancel = { navController.popBackStack() }
                 )
             } else if (displayUri != null && pageCount > 0) {
-                var storedPage by rememberSaveable { mutableIntStateOf(0) }
-
                 if (isLargeFile) {
                     LaunchedEffect(Unit) {
                         snackbarHostState.showSnackbar("Large file detected. Some features may be slower.")
@@ -590,6 +614,7 @@ fun PdfReaderScreen(
                             readingDirection = readingDirection,
                             listState = continuousListState,
                             onSingleTap = { barsVisible = !barsVisible },
+                            onLinkTap = { activeHyperlink = it },
                             modifier = Modifier.fillMaxSize()
                         )
                     } else if (readingDirection == ReadingDirection.Vertical) {
@@ -623,6 +648,7 @@ fun PdfReaderScreen(
                                         isActive = isActive,
                                         isSettled = isSettled,
                                         onSingleTap = { barsVisible = !barsVisible },
+                                        onLinkTap = { activeHyperlink = it },
                                         sharedScale = sharedScale,
                                         onScaleChange = { sharedScale = it },
                                         sharedOffset = sharedOffset,
@@ -672,6 +698,7 @@ fun PdfReaderScreen(
                                         isActive = isActive,
                                         isSettled = isSettled,
                                         onSingleTap = { barsVisible = !barsVisible },
+                                        onLinkTap = { activeHyperlink = it },
                                         sharedScale = sharedScale,
                                         onScaleChange = { sharedScale = it },
                                         sharedOffset = sharedOffset,
@@ -718,7 +745,7 @@ fun PdfReaderScreen(
                         }
                     }
 
-                    // â”€â”€ Scrubber â”€â”€
+                    // ── Scrubber ──
                     var scrubJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
                     var lastTargetPage by remember { mutableIntStateOf(-1) }
                     AnimatedVisibility(
@@ -750,7 +777,7 @@ fun PdfReaderScreen(
                         )
                     }
 
-                    // Ã¢â€â‚¬Ã¢â€â‚¬ Go to Page Dialog Ã¢â€â‚¬Ã¢â€â‚¬
+                    // ── Go to Page Dialog ──
                     if (showGoToPageDialog) {
                         GoToPageDialog(
                             currentPage = pagerState.currentPage + 1,
@@ -765,13 +792,41 @@ fun PdfReaderScreen(
                         )
                     }
 
-                    // â”€â”€ Text Mode Bottom Sheet â”€â”€
+                    // ── Text Mode Bottom Sheet ──
                     if (showTextSheet) {
                         TextSelectionSheet(
                             pageIndex = currentPage,
                             pageCount = pageCount,
                             viewModel = viewModel,
                             onDismiss = { showTextSheet = false }
+                        )
+                    }
+
+                    // ── Hyperlink Popup Dialog ──
+                    activeHyperlink?.let { link ->
+                        PdfHyperlinkDialog(
+                            url = link.resolvedUrl,
+                            onOpenLink = { targetUrl ->
+                                activeHyperlink = null
+                                viewModel.flushReadingProgressImmediate(currentPage)
+                                viewModel.updateViewerTransform(sharedScale, sharedOffset.x, sharedOffset.y)
+                                val opened = PdfHyperlinkSupport.openExternalUrl(context, targetUrl)
+                                if (!opened) {
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar("Unable to open link on this device")
+                                    }
+                                }
+                            },
+                            onCopyLink = { targetUrl ->
+                                activeHyperlink = null
+                                val copied = PdfHyperlinkSupport.copyUrlToClipboard(context, targetUrl)
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        if (copied) "Link copied to clipboard" else "Failed to copy link"
+                                    )
+                                }
+                            },
+                            onDismiss = { activeHyperlink = null }
                         )
                     }
                 }
@@ -1235,6 +1290,38 @@ fun PdfReaderScreen(
             }
         }
     }
+
+    if (showOptInDialog) {
+        com.stutool.stutool.tutorial.TutorialOptInDialog(
+            tutorialType = com.stutool.stutool.tutorial.TutorialType.PDF_VIEWER,
+            onWatchTutorial = {
+                showOptInDialog = false
+                sessionPromptHandled = true
+                showPlayer = true
+            },
+            onNoThanks = {
+                showOptInDialog = false
+                sessionPromptHandled = true
+                tutorialPrefs.setTutorialDeclined(com.stutool.stutool.tutorial.TutorialType.PDF_VIEWER, true)
+            },
+            onDismissRequest = {
+                showOptInDialog = false
+                sessionPromptHandled = true
+            }
+        )
+    }
+
+    if (showPlayer) {
+        com.stutool.stutool.tutorial.TutorialPlayerDialog(
+            tutorialType = com.stutool.stutool.tutorial.TutorialType.PDF_VIEWER,
+            onDismiss = { completedOrDismissedByUser ->
+                if (completedOrDismissedByUser) {
+                    tutorialPrefs.markTutorialSeen(com.stutool.stutool.tutorial.TutorialType.PDF_VIEWER)
+                }
+                showPlayer = false
+            }
+        )
+    }
 }
 
 private const val BOUNDARY_PUSH_MULTIPLIER = 6f
@@ -1254,6 +1341,7 @@ fun ZoomablePdfPage(
     isActive: Boolean,
     isSettled: Boolean,
     onSingleTap: () -> Unit,
+    onLinkTap: (PdfLinkAnnotation) -> Unit = {},
     sharedScale: Float,
     onScaleChange: (Float) -> Unit,
     sharedOffset: Offset,
@@ -1267,6 +1355,9 @@ fun ZoomablePdfPage(
     var zoomAnimationJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
 
     val currentSharedScale by rememberUpdatedState(sharedScale)
+    val currentOnSingleTap by rememberUpdatedState(onSingleTap)
+    val currentOnLinkTap by rememberUpdatedState(onLinkTap)
+    val currentPageIndex by rememberUpdatedState(pageIndex)
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -1274,11 +1365,14 @@ fun ZoomablePdfPage(
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
 
-    var pageRatio by remember { mutableFloatStateOf(1f) }
+    val initialCachedRatio = viewModel.getCachedPageRatio(pageIndex)
+    var pageRatio by remember(pageIndex) { mutableFloatStateOf(initialCachedRatio ?: 1f) }
+    var isPageRatioLoaded by remember(pageIndex) { mutableStateOf(initialCachedRatio != null) }
     LaunchedEffect(pageIndex) {
         val size = viewModel.getPageSize(pageIndex)
         if (size != null && size.second != 0) {
             pageRatio = size.first.toFloat() / size.second.toFloat()
+            isPageRatioLoaded = true
         }
     }
 
@@ -1294,12 +1388,17 @@ fun ZoomablePdfPage(
     }
     val currentViewerWidth by rememberUpdatedState(viewerWidth)
     val currentViewerHeight by rememberUpdatedState(viewerHeight)
+    val currentActualWidth by rememberUpdatedState(actualWidth)
+    val currentActualHeight by rememberUpdatedState(actualHeight)
 
     val maxX = ((actualWidth * sharedScale - viewerWidth) / 2f).coerceAtLeast(0f)
     val maxY = ((actualHeight * sharedScale - viewerHeight) / 2f).coerceAtLeast(0f)
 
     // BUG FIX: Never recreate the MutableState object, otherwise pointerInput(Unit) holds a stale reference.
-    var offset by remember { mutableStateOf(Offset.Zero) }
+    // Initialize from sharedOffset when active and zoomed so returning from an external link or configuration change preserves pan.
+    var offset by remember {
+        mutableStateOf(if (isActive && sharedScale > 1f) sharedOffset else Offset.Zero)
+    }
 
     // Handle return to 1x and page-switching initial offsets
     LaunchedEffect(sharedScale == 1f, currentPage) {
@@ -1336,8 +1435,8 @@ fun ZoomablePdfPage(
         }
     }
 
-    LaunchedEffect(viewerWidth, viewerHeight, pageRatio, sharedScale, isTransforming) {
-        if (!isTransforming) {
+    LaunchedEffect(viewerWidth, viewerHeight, pageRatio, isPageRatioLoaded, sharedScale, isTransforming) {
+        if (!isTransforming && isPageRatioLoaded) {
             val targetX = offset.x.coerceIn(-maxX, maxX)
             val targetY = offset.y.coerceIn(-maxY, maxY)
             if (targetX != offset.x || targetY != offset.y) {
@@ -1357,8 +1456,8 @@ fun ZoomablePdfPage(
         }
     }
 
-    // â”€â”€ Pan Engine v2: Clean gesture ownership â”€â”€
-    // Rule: scale<=1 â†’ Pager owns all. scale>1 â†’ Page owns all panning.
+    // ── Pan Engine v2: Clean gesture ownership ──
+    // Rule: scale<=1 → Pager owns all. scale>1 → Page owns all panning.
     // Pager only receives gestures when at the pager-axis boundary AND pushing past it.
     Box(
         modifier = Modifier
@@ -1385,7 +1484,7 @@ fun ZoomablePdfPage(
                         val centroid = event.calculateCentroid()
                         val pointerCount = event.changes.count { it.pressed }
 
-                        // â”€â”€ Touch slop gate â”€â”€
+                        // ── Touch slop gate ──
                         if (!pastSlop) {
                             accZoom *= zoomChange
                             accPan += panChange
@@ -1407,7 +1506,7 @@ fun ZoomablePdfPage(
                             if (!pastSlop) continue
                         }
 
-                        // â”€â”€ Helper: calculate page boundaries at a given scale â”€â”€
+                        // ── Helper: calculate page boundaries at a given scale ──
                         fun pageBounds(scale: Float): Pair<Float, Float> {
                             val dstR = currentViewerWidth / currentViewerHeight
                             val aW = if (pageRatio > dstR) currentViewerWidth else currentViewerHeight * pageRatio
@@ -1418,9 +1517,9 @@ fun ZoomablePdfPage(
                             )
                         }
 
-                        // â”€â”€ Gesture processing â”€â”€
+                        // ── Gesture processing ──
                         when {
-                            // â”€â”€ Multi-finger: pinch-zoom (always consume) â”€â”€
+                            // ── Multi-finger: pinch-zoom (always consume) ──
                             pointerCount > 1 -> {
                                 event.changes.forEach { if (it.pressed) it.consume() }
 
@@ -1438,7 +1537,7 @@ fun ZoomablePdfPage(
                                 if (currentSharedScale != newScale) onScaleChange(newScale)
                             }
 
-                            // â”€â”€ Single-finger while zoomed: pan â”€â”€
+                            // ── Single-finger while zoomed: pan ──
                             currentSharedScale > 1f -> {
                                 val (mx, my) = pageBounds(currentSharedScale)
                                 event.changes.forEach { if (it.pressed) it.consume() }
@@ -1480,7 +1579,7 @@ fun ZoomablePdfPage(
                                 }
                             }
 
-                            // â”€â”€ 1x single-finger: don't consume, Pager owns scrolling â”€â”€
+                            // ── 1x single-finger: don't consume, Pager owns scrolling ──
                         }
                     } while (event.changes.any { it.pressed })
 
@@ -1500,8 +1599,8 @@ fun ZoomablePdfPage(
                         val startOffset = offset
                         val zoomFactor = targetScale / startScale
 
-                        val limitX = ((actualWidth * targetScale - currentViewerWidth) / 2f).coerceAtLeast(0f)
-                        val limitY = ((actualHeight * targetScale - currentViewerHeight) / 2f).coerceAtLeast(0f)
+                        val limitX = ((currentActualWidth * targetScale - currentViewerWidth) / 2f).coerceAtLeast(0f)
+                        val limitY = ((currentActualHeight * targetScale - currentViewerHeight) / 2f).coerceAtLeast(0f)
 
                         val targetOffsetX = (startOffset.x * zoomFactor - (tapOffset.x - currentViewerWidth / 2f) * (zoomFactor - 1f)).coerceIn(-limitX, limitX)
                         val targetOffsetY = (startOffset.y * zoomFactor - (tapOffset.y - currentViewerHeight / 2f) * (zoomFactor - 1f)).coerceIn(-limitY, limitY)
@@ -1526,8 +1625,36 @@ fun ZoomablePdfPage(
                             }
                         }
                     },
-                    onTap = {
-                        onSingleTap()
+                    onTap = { tapOffset ->
+                        val normalizedPoint = PdfHyperlinkSupport.mapZoomablePageTapToNormalizedPoint(
+                            tapX = tapOffset.x,
+                            tapY = tapOffset.y,
+                            viewerWidth = currentViewerWidth,
+                            viewerHeight = currentViewerHeight,
+                            actualWidth = currentActualWidth,
+                            actualHeight = currentActualHeight,
+                            scale = currentSharedScale,
+                            offsetX = offset.x,
+                            offsetY = offset.y
+                        )
+                        if (normalizedPoint == null) {
+                            currentOnSingleTap()
+                        } else {
+                            val targetPageIdx = currentPageIndex
+                            coroutineScope.launch {
+                                val links = viewModel.getPageLinks(targetPageIdx)
+                                val hitLink = PdfHyperlinkSupport.findHitHyperlink(
+                                    links = links,
+                                    normalizedX = normalizedPoint.first,
+                                    normalizedY = normalizedPoint.second
+                                )
+                                if (hitLink != null) {
+                                    currentOnLinkTap(hitLink)
+                                } else {
+                                    currentOnSingleTap()
+                                }
+                            }
+                        }
                     }
                 )
             },
@@ -1859,6 +1986,11 @@ fun TextSelectionSheet(
 ) {
     val context = LocalContext.current
     var includeNearby by remember { mutableStateOf(false) }
+    var selectedLanguage by remember { mutableStateOf(com.stutool.stutool.domain.ocr.OcrLanguage.AUTO) }
+    val ocrPreferences = remember { com.stutool.stutool.data.local.OcrPreferences(context) }
+    var forceOfflineOnly by remember { mutableStateOf(false) }
+    var showConsentDialog by remember { mutableStateOf(false) }
+    val ocrState by viewModel.pageOcrState.collectAsState()
 
     val pageText = produceState(initialValue = "Extracting text...", pageIndex, includeNearby) {
         value = "Extracting text..."
@@ -1885,10 +2017,23 @@ fun TextSelectionSheet(
         }
     }
 
-    val isExtracting = pageText.value == "Extracting text..."
+    val isExtractingInitial = pageText.value == "Extracting text..."
+    val isPlaceholder = pageText.value.startsWith("(No selectable text found") || pageText.value.isBlank()
+    val currentOcrText = if (ocrState.pageIndex == pageIndex && !ocrState.extractedText.isNullOrBlank()) {
+        ocrState.extractedText
+    } else null
+
+    val isOcrLoading = ocrState.isLoading && ocrState.pageIndex == pageIndex
+    val ocrError = if (ocrState.pageIndex == pageIndex) ocrState.errorMessage else null
+
+    val displayText = currentOcrText ?: if (isPlaceholder) "" else pageText.value
+    val hasValidText = displayText.isNotBlank()
 
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {
+            viewModel.clearPageOcrState()
+            onDismiss()
+        },
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         dragHandle = { BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.outline) }
     ) {
@@ -1912,48 +2057,296 @@ fun TextSelectionSheet(
                 TextButton(
                     onClick = {
                         val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                        val clip = android.content.ClipData.newPlainText("PDF Page Text", pageText.value)
+                        val clip = android.content.ClipData.newPlainText("PDF Page Text", displayText)
                         clipboard.setPrimaryClip(clip)
                     },
-                    enabled = !isExtracting
+                    enabled = hasValidText && !isExtractingInitial && !isOcrLoading
                 ) {
-                    Icon(Icons.Default.ContentCopy, contentDescription = null, tint = if (isExtracting) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                    Icon(
+                        imageVector = Icons.Default.ContentCopy,
+                        contentDescription = null,
+                        tint = if (hasValidText && !isExtractingInitial && !isOcrLoading) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(18.dp)
+                    )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Copy All", color = if (isExtracting) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary)
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Checkbox(
-                    checked = includeNearby,
-                    onCheckedChange = { includeNearby = it },
-                    colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Include Nearby Pages", color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f, fill = false)
-                    .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp))
-                    .padding(16.dp)
-            ) {
-                SelectionContainer {
                     Text(
-                        text = pageText.value,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontSize = 15.sp,
-                        lineHeight = 22.sp,
-                        modifier = Modifier.verticalScroll(rememberScrollState())
+                        "Copy All",
+                        color = if (hasValidText && !isExtractingInitial && !isOcrLoading) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
                     )
                 }
             }
+
+            if (!isPlaceholder || currentOcrText != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = includeNearby,
+                        onCheckedChange = { includeNearby = it },
+                        colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Include Nearby Pages", color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
+                }
+            }
+
+            if (isExtractingInitial) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(32.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        strokeWidth = 3.dp
+                    )
+                }
+            } else if (isOcrLoading) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(36.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        strokeWidth = 3.dp
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "Extracting text with OCR...",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "Recognizing Kannada & English on-device",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else if (isPlaceholder && currentOcrText == null) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DocumentScanner,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Text(
+                        text = "No selectable text found on this page.",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = "This page appears to be a scanned document or image without embedded text.",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        lineHeight = 18.sp
+                    )
+
+                    if (ocrError != null) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = "Error: $ocrError",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Auto-detect (Kannada, English & Hindi)",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp, vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = forceOfflineOnly,
+                            onCheckedChange = { forceOfflineOnly = it }
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Process on-device only",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Button(
+                        onClick = {
+                            val decision = com.stutool.stutool.domain.ocr.OcrRouter.evaluate(
+                                context = context,
+                                fileSizeBytes = 500_000L,
+                                pageCount = 1,
+                                hasExtractableText = false,
+                                userForceOffline = forceOfflineOnly,
+                                ocrPreferences = ocrPreferences
+                            )
+                            when (decision) {
+                                is com.stutool.stutool.domain.ocr.OcrRouter.RouteDecision.NeedsConsent -> {
+                                    showConsentDialog = true
+                                }
+                                is com.stutool.stutool.domain.ocr.OcrRouter.RouteDecision.UseCloud -> {
+                                    viewModel.extractPageTextWithOcr(
+                                        pageIndex = pageIndex,
+                                        language = selectedLanguage,
+                                        mode = com.stutool.stutool.domain.ocr.OcrMode.SMART_AUTO
+                                    )
+                                }
+                                else -> {
+                                    viewModel.extractPageTextWithOcr(
+                                        pageIndex = pageIndex,
+                                        language = selectedLanguage,
+                                        mode = com.stutool.stutool.domain.ocr.OcrMode.OFFLINE_ONLY
+                                    )
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DocumentScanner,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Extract Text with OCR",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 15.sp
+                        )
+                    }
+                }
+            } else {
+                Column(modifier = Modifier.fillMaxWidth().weight(1f, fill = false)) {
+                    if (ocrState.pageIndex == pageIndex && !ocrState.engineUsed.isNullOrBlank()) {
+                        Row(
+                            modifier = Modifier.padding(bottom = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = if (ocrState.engineUsed!!.contains("Cloud", ignoreCase = true)) Icons.Default.Cloud else Icons.Default.Lock,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Extracted via ${ocrState.engineUsed}",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp))
+                            .padding(16.dp)
+                    ) {
+                        SelectionContainer {
+                            Text(
+                                text = displayText,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                fontSize = 15.sp,
+                                lineHeight = 22.sp,
+                                modifier = Modifier.verticalScroll(rememberScrollState())
+                            )
+                        }
+                    }
+                }
+            }
         }
+    }
+
+    if (showConsentDialog) {
+        com.stutool.stutool.ui.components.OcrCloudConsentDialog(
+            onProceedOnline = {
+                ocrPreferences.setCloudOptInAcknowledged(true)
+                showConsentDialog = false
+                viewModel.extractPageTextWithOcr(
+                    pageIndex = pageIndex,
+                    language = selectedLanguage,
+                    mode = com.stutool.stutool.domain.ocr.OcrMode.SMART_AUTO
+                )
+            },
+            onProcessOffline = {
+                showConsentDialog = false
+                viewModel.extractPageTextWithOcr(
+                    pageIndex = pageIndex,
+                    language = selectedLanguage,
+                    mode = com.stutool.stutool.domain.ocr.OcrMode.OFFLINE_ONLY
+                )
+            },
+            onDismiss = {
+                showConsentDialog = false
+                viewModel.extractPageTextWithOcr(
+                    pageIndex = pageIndex,
+                    language = selectedLanguage,
+                    mode = com.stutool.stutool.domain.ocr.OcrMode.OFFLINE_ONLY
+                )
+            }
+        )
     }
 }
 

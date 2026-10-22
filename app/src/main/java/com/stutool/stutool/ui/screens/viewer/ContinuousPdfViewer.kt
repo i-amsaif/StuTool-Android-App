@@ -123,10 +123,19 @@ fun ContinuousPdfViewer(
     readingDirection: ReadingDirection,
     listState: LazyListState,
     modifier: Modifier = Modifier,
-    onSingleTap: () -> Unit
+    onSingleTap: () -> Unit,
+    onLinkTap: (PdfLinkAnnotation) -> Unit = {}
 ) {
-    var scale by remember { mutableFloatStateOf(1f) }
-    var offset by remember { mutableStateOf(Offset.Zero) }
+    val savedScale by viewModel.continuousScale.collectAsState()
+    val savedOffsetX by viewModel.continuousOffsetX.collectAsState()
+    val savedOffsetY by viewModel.continuousOffsetY.collectAsState()
+
+    var scale by remember { mutableFloatStateOf(savedScale) }
+    var offset by remember { mutableStateOf(Offset(savedOffsetX, savedOffsetY)) }
+
+    LaunchedEffect(scale, offset) {
+        viewModel.updateContinuousTransform(scale, offset.x, offset.y)
+    }
 
     val minScale = 1f
     val maxScale = 5f
@@ -186,6 +195,9 @@ fun ContinuousPdfViewer(
             }
         }
 
+        val currentOnSingleTap by rememberUpdatedState(onSingleTap)
+        val currentOnLinkTap by rememberUpdatedState(onLinkTap)
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -227,8 +239,46 @@ fun ContinuousPdfViewer(
                                 }
                             }
                         },
-                        onTap = {
-                            onSingleTap()
+                        onTap = { tapOffset ->
+                            val isVertical = readingDirection == ReadingDirection.Vertical
+                            val currentScale = scale
+                            val currentOffset = offset
+                            coroutineScope.launch {
+                                val layoutInfo = listState.layoutInfo
+                                val viewportStart = layoutInfo.viewportStartOffset
+                                var hitAnnotation: PdfLinkAnnotation? = null
+
+                                for (item in layoutInfo.visibleItemsInfo) {
+                                    val normalizedPoint = PdfHyperlinkSupport.mapContinuousViewportTapToNormalizedPoint(
+                                        tapX = tapOffset.x,
+                                        tapY = tapOffset.y,
+                                        viewerWidth = viewerWidth,
+                                        viewerHeight = viewerHeight,
+                                        scale = currentScale,
+                                        offsetX = currentOffset.x,
+                                        offsetY = currentOffset.y,
+                                        isVertical = isVertical,
+                                        viewportStartOffset = viewportStart,
+                                        itemOffset = item.offset,
+                                        itemSize = item.size
+                                    )
+                                    if (normalizedPoint != null) {
+                                        val links = viewModel.getPageLinks(item.index)
+                                        hitAnnotation = PdfHyperlinkSupport.findHitHyperlink(
+                                            links = links,
+                                            normalizedX = normalizedPoint.first,
+                                            normalizedY = normalizedPoint.second
+                                        )
+                                        break
+                                    }
+                                }
+
+                                if (hitAnnotation != null) {
+                                    currentOnLinkTap(hitAnnotation)
+                                } else {
+                                    currentOnSingleTap()
+                                }
+                            }
                         }
                     )
                 }
@@ -343,7 +393,7 @@ fun ContinuousPdfPage(
     isVertical: Boolean,
     onSingleTap: () -> Unit
 ) {
-    var pageRatio by remember { mutableFloatStateOf(0.707f) }
+    var pageRatio by remember(index) { mutableFloatStateOf(viewModel.getCachedPageRatio(index) ?: 0.707f) }
 
     LaunchedEffect(index) {
         val size = viewModel.getPageSize(index)

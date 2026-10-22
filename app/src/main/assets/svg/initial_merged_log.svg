@@ -1,0 +1,141 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="100%" height="100%">
+  <defs>
+    <!-- Main Document Red Gradients (from previous SVG) -->
+    <linearGradient id="grad-doc-body" x1="10%" y1="15%" x2="85%" y2="85%">
+      <stop offset="0%" stop-color="#fa0204" />
+      <stop offset="65%" stop-color="#f50002" />
+      <stop offset="100%" stop-color="#e60002" />
+    </linearGradient>
+
+    <linearGradient id="grad-doc-border" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e31012" />
+      <stop offset="50%" stop-color="#d40709" />
+      <stop offset="100%" stop-color="#bf0002" />
+    </linearGradient>
+
+    <linearGradient id="grad-fold-body" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff0a0c" />
+      <stop offset="100%" stop-color="#ec0002" />
+    </linearGradient>
+
+    <!-- Unified Inner Document Clip Path -->
+    <clipPath id="clip-doc-merged-inner">
+      <path d="M 77 272 C 70 231 90 217 125 205 L 549 59 L 569 176 C 575 211 595 219 628 211 L 754 180 L 819 688 C 825 725 812 736 784 745 L 222 908 C 192 916 175 900 169 860 Z" />
+    </clipPath>
+  </defs>
+
+  <!-- 1. Unified Document Container -->
+  <g id="document-merged">
+    <!-- Outer Black Casing (Matches previous SVG border weight) -->
+    <path id="document-black-outline"
+      d="M 40 278 C 30 212 62 188 112 171 L 574 11 L 809 126 C 821 132 820 146 806 153 L 788 164 L 856 692 C 864 750 839 768 794 782 L 214 950 C 168 963 142 940 133 884 Z"
+      fill="#000000" />
+
+    <!-- Inner Black Fold Crease (Preserves fold gap even if outer outline is hidden) -->
+    <path id="fold-crease-black"
+      d="M 559 43 L 579 36 L 782 138 L 766 165 L 626 200 C 602 206 587 205 581 172 Z"
+      fill="#000000" />
+
+    <!-- Outer Red Bevel / Rim -->
+    <path id="document-rim"
+      d="M 62 275 C 54 224 78 207 118 193 L 559 43 L 581 172 C 587 205 602 206 626 200 L 766 165 L 832 690 C 839 733 821 746 788 756 L 218 922 C 182 932 162 914 155 868 Z"
+      fill="url(#grad-doc-border)" />
+
+    <!-- Inner Main Surface & Continuous Diagonal Tonal Zones -->
+    <g id="document-surface" clip-path="url(#clip-doc-merged-inner)">
+      <!-- Zone 1: Base Bright Scarlet -->
+      <rect x="50" y="40" width="800" height="900" fill="url(#grad-doc-body)" />
+
+      <!-- Under-Fold Highlight Wedge -->
+      <polygon id="fold-highlight-wedge"
+        points="572,202 698,172 585,325 538,242"
+        fill="#ff2924" />
+
+      <!-- Zone 2: Continuous Middle Diagonal Shading Band -->
+      <polygon id="tonal-band-mid"
+        points="275,915 755,178 840,360 840,930"
+        fill="#dc0002" />
+
+      <!-- Zone 3: Continuous Bottom-Right Deep Crimson Band -->
+      <polygon id="tonal-band-deep"
+        points="375,895 792,375 845,740 840,930"
+        fill="#c70002" />
+    </g>
+
+    <!-- Folded Corner Flap -->
+    <g id="document-fold">
+      <path id="fold-rim"
+        d="M 579 36 L 782 138 L 622 176 C 607 179 600 173 597 158 Z"
+        fill="#dc0b0d" />
+      <path id="fold-surface"
+        d="M 592 55 L 754 134 L 624 165 C 613 167 609 163 607 152 Z"
+        fill="url(#grad-fold-body)" />
+    </g>
+
+    <!-- 2. Intact Viewfinder Brackets -->
+    <g id="scanner-brackets">
+      <!-- Top-Left Corner Bracket -->
+      <g id="bracket-top-left">
+        <path id="bracket-tl-shadow"
+          d="M 188 430 L 222 421 L 227 439 L 191 448 Z M 212 338 L 291 318 L 295 333 L 215 352 Z"
+          fill="#b30002" />
+        <path id="bracket-tl-body"
+          d="M 167 315 C 166 309 169 306 175 304 L 280 279 C 284 278 286 280 287 284 L 292 314 C 293 317 291 319 287 320 L 211 339 L 221 417 C 222 421 220 423 216 424 L 188 431 C 184 432 182 430 181 426 Z"
+          fill="#ffffff" />
+      </g>
+
+      <!-- Top-Right Corner Bracket (Whole / Uncut) -->
+      <g id="bracket-top-right">
+        <path id="bracket-tr-shadow"
+          d="M 481 271 L 566 250 L 568 266 L 484 287 Z M 579 335 L 614 326 L 617 344 L 582 353 Z"
+          fill="#b30002" />
+        <path id="bracket-tr-body"
+          d="M 473 238 C 472 234 474 232 478 231 L 589 204 C 596 202 600 205 601 212 L 615 321 C 616 325 614 327 610 328 L 582 335 C 578 336 576 334 575 330 L 565 250 L 483 271 C 479 272 477 270 476 266 Z"
+          fill="#ffffff" />
+      </g>
+
+      <!-- Bottom-Left Corner Bracket (Whole / Uncut) -->
+      <g id="bracket-bottom-left">
+        <path id="bracket-bl-shadow"
+          d="M 220 659 L 334 631 L 337 647 L 223 675 Z"
+          fill="#b30002" />
+        <path id="bracket-bl-body"
+          d="M 198 543 C 197 539 199 537 203 536 L 231 529 C 235 528 237 530 238 534 L 247 610 L 323 591 C 327 590 329 592 330 596 L 335 625 C 336 629 334 631 330 632 L 224 659 C 217 661 213 658 212 651 Z"
+          fill="#ffffff" />
+      </g>
+
+      <!-- Bottom-Right Corner Bracket (Aligned to Merged Box) -->
+      <g id="bracket-bottom-right">
+        <path id="bracket-br-shadow"
+          d="M 540 586 L 657 556 L 660 571 L 543 601 Z"
+          fill="#a30002" />
+        <path id="bracket-br-body"
+          d="M 604 452 C 603 448 605 446 609 445 L 637 438 C 641 437 643 439 644 443 L 658 549 C 659 554 656 557 651 559 L 542 586 C 538 587 536 585 535 581 L 531 553 C 530 549 532 547 536 546 L 615 527 Z"
+          fill="#ffffff" />
+      </g>
+    </g>
+  </g>
+
+  <!-- 3. Flying Shards / Triangles (Exact Colors & Positions from SVG) -->
+  <g id="flying-shards">
+    <!-- Left Shard Pair -->
+    <g id="shards-left">
+      <polygon id="shard-black-left"
+        points="19,595 83,618 12,626"
+        fill="#000000" />
+      <polygon id="shard-red-left"
+        points="0,639 70,645 4,675"
+        fill="#c9070a" />
+    </g>
+
+    <!-- Right Shard Pair -->
+    <g id="shards-right">
+      <polygon id="shard-red-right"
+        points="824,342 863,274 891,309"
+        fill="#d3080b" />
+      <polygon id="shard-black-right"
+        points="828,366 901,351 894,385"
+        fill="#000000" />
+    </g>
+  </g>
+</svg>

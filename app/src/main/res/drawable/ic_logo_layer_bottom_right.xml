@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="1000"
+    android:viewportHeight="1000">
+
+    <!-- Black Casing -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M160,884 L784,260 C794,250 801,256 803,272 L856,714 C865,772 840,790 795,804 L212,975 C172,986 150,962 155,918Z" />
+
+    <!-- Red Bevel / Rim -->
+    <path
+        android:pathData="M178,886 L770,294 L832,715 C839,758 821,770 788,780 L218,949 C185,958 168,938 172,908Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="304"
+                android:startY="491"
+                android:endX="766"
+                android:endY="916">
+                <item android:offset="0" android:color="#FFe50709" />
+                <item android:offset="1" android:color="#FFbf0002" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Inner Surface (clipped) -->
+    <group>
+        <clip-path
+            android:pathData="M192,886 L760,318 L819,711 C825,748 812,759 784,767 L222,935 C196,942 185,925 188,902Z" />
+
+        <path
+            android:fillColor="#f50002"
+            android:pathData="M170,290 L840,290 L840,960 L170,960Z" />
+
+        <path
+            android:fillColor="#dc0002"
+            android:pathData="M265,925 L785,392 L840,480 L840,960Z" />
+
+        <path
+            android:fillColor="#c70002"
+            android:pathData="M395,892 L798,482 L845,760 L840,960Z" />
+    </group>
+
+    <!-- Bottom-Right Scanner Bracket -->
+    <path
+        android:fillColor="#a30002"
+        android:pathData="M576,612 L693,582 L696,597 L579,627Z" />
+    <path
+        android:fillColor="#ffffff"
+        android:pathData="M640,478 C639,474 641,472 645,471 L673,464 C677,463 679,465 680,469 L694,575 C695,580 692,583 687,585 L578,612 C574,613 572,611 571,607 L567,579 C566,575 568,573 572,572 L651,553Z" />
+
+</vector>

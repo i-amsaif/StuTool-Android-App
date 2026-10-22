@@ -48,6 +48,12 @@ import androidx.navigation.NavType
 import androidx.compose.runtime.collectAsState
 import com.stutool.stutool.ui.components.BottomNavBar
 import com.stutool.stutool.ui.components.DrawerContent
+import androidx.activity.compose.BackHandler
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.Text
+import androidx.compose.ui.text.font.FontWeight
+import android.app.Activity
 import com.stutool.stutool.ui.components.TopBar
 import kotlinx.coroutines.launch
 import com.stutool.stutool.ui.screens.HomeScreen
@@ -85,6 +91,10 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object PagesPerSheet : Screen("pages_per_sheet", "Multiple Pages per Sheet", Icons.Default.Add)
     object ExtractPages : Screen("extract_pages", "Extract Pages", Icons.Default.Add)
     object CompressPdf : Screen("compress_pdf", "Compress PDF", Icons.Default.Add)
+    object PdfToImage : Screen("pdf_to_image", "PDF to Image", Icons.Default.Add)
+    object OcrPdf : Screen("ocr_pdf", "Searchable PDF", Icons.Default.Add)
+    object PdfToWord : Screen("pdf_to_word", "PDF to Word", Icons.Default.Add)
+    object PdfToExcel : Screen("pdf_to_excel", "PDF to Excel", Icons.Default.Add)
 }
 
 // Routes where the shell TopBar is visible
@@ -122,12 +132,22 @@ fun AppNavigation(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    val isAtHomeRoot = currentRoute == Screen.Home.route
+    var showExitConfirmationDialog by rememberSaveable { mutableStateOf(false) }
+
+    // Intercept system Back only when Home is the root destination
+    BackHandler(enabled = isAtHomeRoot) {
+        showExitConfirmationDialog = true
+    }
+
     val showTopBar = currentRoute in TOP_BAR_ROUTES
     val showBottomBar = currentRoute in BOTTOM_BAR_ROUTES
 
+    val appContext = LocalContext.current
     androidx.compose.runtime.LaunchedEffect(externalPdfFlow) {
         externalPdfFlow?.collect { encodedUri ->
-            navController.navigate("reader_screen/$encodedUri") {
+            val targetRoute = resolveReaderRouteForEncodedUri(appContext, encodedUri)
+            navController.navigate(targetRoute) {
                 launchSingleTop = true
             }
         }
@@ -151,12 +171,18 @@ fun AppNavigation(
                     // Resume Builder from drawer should go through splash
                     val actualRoute = if (route == "resume_builder") "resume" else route
                     navController.navigate(actualRoute) {
-                        popUpTo(navController.graph.startDestinationId)
+                        popUpTo(Screen.Home.route) {
+                            saveState = true
+                        }
                         launchSingleTop = true
+                        restoreState = true
                     }
                 },
                 onThemeToggle = onThemeToggle,
-                isDarkMode = isDarkMode
+                isDarkMode = isDarkMode,
+                onExitClick = {
+                    showExitConfirmationDialog = true
+                }
             ) 
         }
     ) {
@@ -180,6 +206,42 @@ fun AppNavigation(
             }
         }
     ) { innerPadding ->
+        if (showExitConfirmationDialog) {
+            val activity = (appContext as? Activity)
+                ?: ((appContext as? android.content.ContextWrapper)?.baseContext as? Activity)
+            AlertDialog(
+                onDismissRequest = { showExitConfirmationDialog = false },
+                title = {
+                    Text(
+                        text = "Exit StuTool",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                text = {
+                    Text(text = "Are you sure you want to exit the app?")
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showExitConfirmationDialog = false
+                            activity?.finish()
+                        }
+                    ) {
+                        Text(
+                            text = "Exit",
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showExitConfirmationDialog = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
+
         Box(modifier = Modifier.fillMaxSize()) {
             NavHost(
                 navController = navController,
@@ -229,8 +291,8 @@ fun AppNavigation(
                 com.stutool.stutool.ui.screens.SplashScreen(
                     onSplashComplete = {
                         val target = if (initialPdfUriEncoded != null) {
-                            // External PDF intent always bypasses onboarding
-                            "reader_screen/$initialPdfUriEncoded"
+                            // External document intent always bypasses onboarding
+                            resolveReaderRouteForEncodedUri(context, initialPdfUriEncoded)
                         } else {
                             val prefs = com.stutool.stutool.data.local.ThemePreferences.getInstance(context)
                             if (prefs.isOnboardingComplete()) {
@@ -397,7 +459,7 @@ fun AppNavigation(
             // â”€â”€ Resume Builder (Full screen Editor) â”€â”€
             composable(Screen.ResumeBuilder.route) {
                 ResumeBuilderScreen(onNavigateBack = {
-                    navController.navigate("resume_exit_splash") {
+                    navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.ResumeBuilder.route) { inclusive = true }
                         launchSingleTop = true
                     }
@@ -423,14 +485,54 @@ fun AppNavigation(
             composable(Screen.PagesPerSheet.route) { PagesPerSheetScreen(navController) }
             composable(Screen.ExtractPages.route) { ExtractPagesScreen(navController) }
             composable(Screen.CompressPdf.route) { CompressPdfScreen(navController) }
+            composable(Screen.PdfToImage.route) { com.stutool.stutool.ui.screens.tools.PdfToImageScreen(navController) }
+            composable(Screen.OcrPdf.route) { com.stutool.stutool.ui.screens.tools.OcrPdfScreen(navController) }
+            composable(Screen.PdfToWord.route) { com.stutool.stutool.ui.screens.tools.PdfToWordScreen(navController) }
+            composable(Screen.PdfToExcel.route) { com.stutool.stutool.ui.screens.tools.PdfToExcelScreen(navController) }
 
-            // â”€â”€ PDF Reader (full-screen) â”€â”€
+            // ── PDF Reader (full-screen) ──
             composable(
                 route = "reader_screen/{uri}",
                 arguments = listOf(navArgument("uri") { type = NavType.StringType })
             ) { backStackEntry ->
                 val uriStr = backStackEntry.arguments?.getString("uri") ?: ""
                 PdfReaderScreen(navController = navController, uriString = uriStr)
+            }
+
+            // ── TXT Reader (isolated full-screen) ──
+            composable(
+                route = "txt_reader/{uri}",
+                arguments = listOf(navArgument("uri") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val uriStr = backStackEntry.arguments?.getString("uri") ?: ""
+                com.stutool.stutool.ui.screens.viewer.TxtReaderScreen(
+                    navController = navController,
+                    uriString = uriStr
+                )
+            }
+
+            // ── DOCX Reader (isolated full-screen) ──
+            composable(
+                route = "docx_reader/{uri}",
+                arguments = listOf(navArgument("uri") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val uriStr = backStackEntry.arguments?.getString("uri") ?: ""
+                com.stutool.stutool.ui.screens.viewer.DocxReaderScreen(
+                    navController = navController,
+                    uriString = uriStr
+                )
+            }
+
+            // ── XLSX Reader (isolated full-screen) ──
+            composable(
+                route = "xlsx_reader/{uri}",
+                arguments = listOf(navArgument("uri") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val uriStr = backStackEntry.arguments?.getString("uri") ?: ""
+                com.stutool.stutool.ui.screens.viewer.XlsxReaderScreen(
+                    navController = navController,
+                    uriString = uriStr
+                )
             }
             composable("settings") {
                 com.stutool.stutool.ui.screens.SettingsScreen(
@@ -463,4 +565,65 @@ private fun sharedScannerViewModel(navController: androidx.navigation.NavControl
     }
     return androidx.lifecycle.viewmodel.compose.viewModel(navBackStackEntry)
 }
+
+internal fun resolveReaderRouteForEncodedUri(
+    context: android.content.Context,
+    encodedUri: String
+): String {
+    return try {
+        val decodedUriString = String(
+            android.util.Base64.decode(encodedUri, android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP),
+            Charsets.UTF_8
+        )
+        val uri = android.net.Uri.parse(decodedUriString)
+        val mimeType = context.contentResolver.getType(uri)
+        var displayName: String? = null
+        try {
+            context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val idx = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                    if (idx != -1) {
+                        displayName = cursor.getString(idx)
+                    }
+                }
+            }
+        } catch (_: Exception) {
+        }
+        val candidateName = displayName ?: uri.lastPathSegment ?: uri.path ?: ""
+
+        val isXlsxOrExcel = candidateName.endsWith(".xlsx", ignoreCase = true) ||
+            candidateName.endsWith(".xls", ignoreCase = true) ||
+            mimeType.equals(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                ignoreCase = true
+            ) ||
+            mimeType.equals("application/vnd.ms-excel", ignoreCase = true)
+
+        val isDocxOrWord = !isXlsxOrExcel && (
+            candidateName.endsWith(".docx", ignoreCase = true) ||
+                candidateName.endsWith(".doc", ignoreCase = true) ||
+                mimeType.equals(
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    ignoreCase = true
+                ) ||
+                mimeType.equals("application/msword", ignoreCase = true)
+            )
+
+        val isTxt = !isXlsxOrExcel && !isDocxOrWord && (
+            (mimeType != null && mimeType.startsWith("text/", ignoreCase = true)) ||
+                candidateName.endsWith(".txt", ignoreCase = true)
+            )
+
+        when {
+            isXlsxOrExcel -> "xlsx_reader/$encodedUri"
+            isDocxOrWord -> "docx_reader/$encodedUri"
+            isTxt -> "txt_reader/$encodedUri"
+            else -> "reader_screen/$encodedUri"
+        }
+    } catch (_: Exception) {
+        "reader_screen/$encodedUri"
+    }
+}
+
+
 

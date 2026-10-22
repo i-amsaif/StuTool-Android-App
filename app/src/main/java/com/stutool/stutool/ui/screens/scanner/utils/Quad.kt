@@ -344,8 +344,8 @@ data class Quad(
          * Reduced from 5% to allow near-edge cropping while preserving handle accessibility.
          */
         fun defaultForImage(width: Int, height: Int): Quad {
-            val insetX = width * 0.02f
-            val insetY = height * 0.02f
+            val insetX = 0f
+            val insetY = 0f
             return Quad(
                 topLeft = PointF(insetX, insetY),
                 topRight = PointF(width - insetX, insetY),

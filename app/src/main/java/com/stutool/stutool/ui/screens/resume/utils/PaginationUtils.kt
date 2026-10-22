@@ -18,7 +18,8 @@ object PaginationUtils {
      * inherited by the rendering engine width.
      */
     fun getHeaderHeightPx(pageWidthPx: Float): Float {
-        return pageWidthPx * (HEADER_VIRTUAL_DP / VIRTUAL_BASE_WIDTH)
+        // Multi-page 'Continued' header was completely removed per requirements, so no height is reserved.
+        return 0f
     }
 
     /**

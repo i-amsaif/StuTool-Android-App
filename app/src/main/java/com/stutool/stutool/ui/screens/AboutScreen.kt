@@ -70,7 +70,7 @@ fun AboutScreen(navController: NavController) {
                 icon = Icons.Default.Widgets
             ) {
                 Text(
-                    text = "StuTool is a fast, minimal, and privacy-focused toolkit containing a Document Scanner, PDF Tools, and a Resume Builder designed for students and professionals.",
+                    text = "StuTool is a fast, minimal, and privacy-focused document workstation designed for students and professionals. It combines a multi-format Document Viewer, PDF Tools, Document Scanner, and an ATS-friendly Resume Builder in a clean, offline-first app.",
                     fontSize = 14.sp,
                     lineHeight = 22.sp,
                     color = MaterialTheme.colorScheme.onSurface
@@ -83,11 +83,12 @@ fun AboutScreen(navController: NavController) {
                 icon = Icons.Default.AutoAwesome
             ) {
                 val features = listOf(
-                    "Document Scanner (clean camera scan)",
-                    "Resume Builder (ATS-friendly)",
-                    "PDF Tools (merge, compress, extract, image to pdf, pages per sheet)",
-                    "PDF Viewer (continuous scroll, local text extraction)",
-                    "AI Enhance (career objective improvement)"
+                    "Document Viewer (smooth continuous scroll, text search, hyperlinks & multi-format support)",
+                    "Document Scanner (clean camera scan, smart edge detection, color filters & PDF export)",
+                    "PDF Tools Suite (merge, compress, extract pages, image to PDF, pages per sheet & conversions)",
+                    "Resume Builder (6 ATS-friendly templates, live preview & instant PDF export)",
+                    "AI Resume Assistant (optional career objective enhancement)",
+                    "OCR & Text Recognition (on-device ML Kit & Tesseract with optional cloud fallback)"
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     features.forEach { feature ->
@@ -118,9 +119,9 @@ fun AboutScreen(navController: NavController) {
                 icon = Icons.Default.Lightbulb
             ) {
                 val principles = listOf(
-                    "No login required",
-                    "Works locally whenever possible",
-                    "Fast and distraction-free"
+                    "No account or sign-in required",
+                    "Offline-first: documents are processed locally on your device",
+                    "Fast, lightweight, and distraction-free"
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     principles.forEach { principle ->
@@ -150,13 +151,13 @@ fun AboutScreen(navController: NavController) {
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "StuTool uses AI to enhance user-written content.",
+                        text = "StuTool offers an optional AI assistant to help polish career objectives in the Resume Builder.",
                         fontSize = 14.sp,
                         lineHeight = 22.sp,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "User input (only the text you enter) may be sent to third-party AI services to generate improved results.",
+                        text = "AI enhancement is strictly opt-in and triggered only when you tap Enhance. Only the specific text snippet you enter is sent to third-party AI providers (such as Google Gemini, Groq, or OpenRouter) to generate suggestions. Your documents and personal files are never sent to AI services.",
                         fontSize = 14.sp,
                         lineHeight = 22.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -170,7 +171,7 @@ fun AboutScreen(navController: NavController) {
                 icon = Icons.Default.Code
             ) {
                 Text(
-                    text = "Built to simplify document workflows and help users create professional resumes faster.",
+                    text = "Built to simplify everyday document workflows, provide dependable offline utilities, and help students and professionals create standout resumes without friction.",
                     fontSize = 14.sp,
                     lineHeight = 22.sp,
                     color = MaterialTheme.colorScheme.onSurface
@@ -185,6 +186,7 @@ fun AboutScreen(navController: NavController) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     AboutInfoRow("App Name", "StuTool")
                     AboutInfoRow("Version", BuildConfig.VERSION_NAME)
+                    AboutInfoRow("Developer", "Mohammed Saif")
                 }
             }
 

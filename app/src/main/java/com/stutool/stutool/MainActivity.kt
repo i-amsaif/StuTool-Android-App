@@ -27,26 +27,28 @@ import android.net.Uri
 class MainActivity : ComponentActivity() {
     private val externalPdfFlow = MutableSharedFlow<String>(extraBufferCapacity = 1)
     
-    private fun extractUriFromIntent(intent: Intent?): String? {
-        if (intent == null) return null
-        return when (intent.action) {
-            Intent.ACTION_VIEW -> intent.data?.toString()
-            Intent.ACTION_SEND -> {
-                val uri = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM) 
-                    ?: intent.clipData?.let { if (it.itemCount > 0) it.getItemAt(0).uri else null }
-                uri?.toString()
+    companion object {
+        internal fun extractUriFromIntent(intent: Intent?): String? {
+            if (intent == null) return null
+            return when (intent.action) {
+                Intent.ACTION_VIEW -> intent.data?.toString()
+                Intent.ACTION_SEND -> {
+                    val uri = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM) 
+                        ?: intent.clipData?.let { if (it.itemCount > 0) it.getItemAt(0).uri else null }
+                    uri?.toString()
+                }
+                else -> null
             }
-            else -> null
         }
-    }
-    
-    private fun getUriFromIntent(intent: Intent?): Uri? {
-        if (intent == null) return null
-        return when (intent.action) {
-            Intent.ACTION_VIEW -> intent.data
-            Intent.ACTION_SEND -> intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
-                ?: intent.clipData?.let { if (it.itemCount > 0) it.getItemAt(0).uri else null }
-            else -> null
+        
+        internal fun getUriFromIntent(intent: Intent?): Uri? {
+            if (intent == null) return null
+            return when (intent.action) {
+                Intent.ACTION_VIEW -> intent.data
+                Intent.ACTION_SEND -> intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+                    ?: intent.clipData?.let { if (it.itemCount > 0) it.getItemAt(0).uri else null }
+                else -> null
+            }
         }
     }
 

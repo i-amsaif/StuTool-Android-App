@@ -1,0 +1,530 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="1000"
+    android:viewportHeight="1000">
+
+    <!-- ════════════════════════════════════════════════════════════════
+         GROUP 1: INTACT DOCUMENT (from initial_merged_logo.svg)
+         Visible at start (fillAlpha=1). Fades out during the split.
+         ════════════════════════════════════════════════════════════════ -->
+    <group android:name="grp_intact">
+
+        <!-- Outer Black Casing -->
+        <path
+            android:name="i_outline"
+            android:fillAlpha="1"
+            android:fillColor="#000000"
+            android:pathData="M40,278 C30,212 62,188 112,171 L574,11 L809,126 C821,132 820,146 806,153 L788,164 L856,692 C864,750 839,768 794,782 L214,950 C168,963 142,940 133,884Z" />
+
+        <!-- Inner Black Fold Crease -->
+        <path
+            android:name="i_crease"
+            android:fillAlpha="1"
+            android:fillColor="#000000"
+            android:pathData="M559,43 L579,36 L782,138 L766,165 L626,200 C602,206 587,205 581,172Z" />
+
+        <!-- Outer Red Bevel / Rim (gradient) -->
+        <path
+            android:name="i_rim"
+            android:fillAlpha="1"
+            android:pathData="M62,275 C54,224 78,207 118,193 L559,43 L581,172 C587,205 602,206 626,200 L766,165 L832,690 C839,733 821,746 788,756 L218,922 C182,932 162,914 155,868Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="54"
+                    android:startY="43"
+                    android:endX="832"
+                    android:endY="922">
+                    <item android:offset="0" android:color="#FFe31012" />
+                    <item android:offset="0.5" android:color="#FFd40709" />
+                    <item android:offset="1" android:color="#FFbf0002" />
+                </gradient>
+            </aapt:attr>
+        </path>
+
+        <!-- Inner Main Surface (clipped) -->
+        <group>
+            <clip-path
+                android:pathData="M77,272 C70,231 90,217 125,205 L549,59 L569,176 C575,211 595,219 628,211 L754,180 L819,688 C825,725 812,736 784,745 L222,908 C192,916 175,900 169,860Z" />
+
+            <!-- Base Bright Scarlet -->
+            <path
+                android:name="i_surface"
+                android:fillAlpha="1"
+                android:pathData="M50,40 L850,40 L850,940 L50,940Z">
+                <aapt:attr name="android:fillColor">
+                    <gradient
+                        android:type="linear"
+                        android:startX="130"
+                        android:startY="175"
+                        android:endX="730"
+                        android:endY="805">
+                        <item android:offset="0" android:color="#FFfa0204" />
+                        <item android:offset="0.65" android:color="#FFf50002" />
+                        <item android:offset="1" android:color="#FFe60002" />
+                    </gradient>
+                </aapt:attr>
+            </path>
+
+            <!-- Under-Fold Highlight Wedge -->
+            <path
+                android:name="i_highlight"
+                android:fillAlpha="1"
+                android:fillColor="#ff2924"
+                android:pathData="M572,202 L698,172 L585,325 L538,242Z" />
+
+            <!-- Middle Diagonal Shading Band -->
+            <path
+                android:name="i_band_mid"
+                android:fillAlpha="1"
+                android:fillColor="#dc0002"
+                android:pathData="M275,915 L755,178 L840,360 L840,930Z" />
+
+            <!-- Bottom-Right Deep Crimson Band -->
+            <path
+                android:name="i_band_deep"
+                android:fillAlpha="1"
+                android:fillColor="#c70002"
+                android:pathData="M375,895 L792,375 L845,740 L840,930Z" />
+        </group>
+
+        <!-- Folded Corner Flap -->
+        <path
+            android:name="i_fold_rim"
+            android:fillAlpha="1"
+            android:fillColor="#dc0b0d"
+            android:pathData="M579,36 L782,138 L622,176 C607,179 600,173 597,158Z" />
+
+        <path
+            android:name="i_fold_surface"
+            android:fillAlpha="1"
+            android:pathData="M592,55 L754,134 L624,165 C613,167 609,163 607,152Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="592"
+                    android:startY="55"
+                    android:endX="754"
+                    android:endY="167">
+                    <item android:offset="0" android:color="#FFff0a0c" />
+                    <item android:offset="1" android:color="#FFec0002" />
+                </gradient>
+            </aapt:attr>
+        </path>
+
+        <!-- Scanner Brackets -->
+        <path
+            android:name="i_btl_s"
+            android:fillAlpha="1"
+            android:fillColor="#b30002"
+            android:pathData="M188,430 L222,421 L227,439 L191,448Z M212,338 L291,318 L295,333 L215,352Z" />
+        <path
+            android:name="i_btl"
+            android:fillAlpha="1"
+            android:fillColor="#ffffff"
+            android:pathData="M167,315 C166,309 169,306 175,304 L280,279 C284,278 286,280 287,284 L292,314 C293,317 291,319 287,320 L211,339 L221,417 C222,421 220,423 216,424 L188,431 C184,432 182,430 181,426Z" />
+
+        <path
+            android:name="i_btr_s"
+            android:fillAlpha="1"
+            android:fillColor="#b30002"
+            android:pathData="M481,271 L566,250 L568,266 L484,287Z M579,335 L614,326 L617,344 L582,353Z" />
+        <path
+            android:name="i_btr"
+            android:fillAlpha="1"
+            android:fillColor="#ffffff"
+            android:pathData="M473,238 C472,234 474,232 478,231 L589,204 C596,202 600,205 601,212 L615,321 C616,325 614,327 610,328 L582,335 C578,336 576,334 575,330 L565,250 L483,271 C479,272 477,270 476,266Z" />
+
+        <path
+            android:name="i_bbl_s"
+            android:fillAlpha="1"
+            android:fillColor="#b30002"
+            android:pathData="M220,659 L334,631 L337,647 L223,675Z" />
+        <path
+            android:name="i_bbl"
+            android:fillAlpha="1"
+            android:fillColor="#ffffff"
+            android:pathData="M198,543 C197,539 199,537 203,536 L231,529 C235,528 237,530 238,534 L247,610 L323,591 C327,590 329,592 330,596 L335,625 C336,629 334,631 330,632 L224,659 C217,661 213,658 212,651Z" />
+
+        <path
+            android:name="i_bbr_s"
+            android:fillAlpha="1"
+            android:fillColor="#a30002"
+            android:pathData="M540,586 L657,556 L660,571 L543,601Z" />
+        <path
+            android:name="i_bbr"
+            android:fillAlpha="1"
+            android:fillColor="#ffffff"
+            android:pathData="M604,452 C603,448 605,446 609,445 L637,438 C641,437 643,439 644,443 L658,549 C659,554 656,557 651,559 L542,586 C538,587 536,585 535,581 L531,553 C530,549 532,547 536,546 L615,527Z" />
+
+    </group>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         GROUP 2: TOP-LEFT HALF (from final_sliced_logo.svg)
+         Hidden at start. Appears shifted inward, slides outward.
+         ════════════════════════════════════════════════════════════════ -->
+    <group
+        android:name="grp_top_left"
+        android:translateX="22"
+        android:translateY="-22">
+
+        <!-- Black Casing -->
+        <path
+            android:name="tl_outline"
+            android:fillAlpha="0"
+            android:fillColor="#000000"
+            android:pathData="M138,818 C127,829 119,822 116,804 L35,282 C25,214 58,190 108,172 L574,11 L809,126 C821,132 820,146 806,153 L776,180Z" />
+
+        <!-- Red Bevel / Rim -->
+        <path
+            android:name="tl_rim"
+            android:fillAlpha="0"
+            android:pathData="M142,794 L59,278 C51,226 76,209 116,195 L559,43 L581,172 C587,205 602,206 626,200 L764,166 L754,182Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="59"
+                    android:startY="43"
+                    android:endX="764"
+                    android:endY="794">
+                    <item android:offset="0" android:color="#FFe31012" />
+                    <item android:offset="0.5" android:color="#FFd40709" />
+                    <item android:offset="1" android:color="#FFb80002" />
+                </gradient>
+            </aapt:attr>
+        </path>
+
+        <!-- Inner Surface (clipped) -->
+        <group>
+            <clip-path
+                android:pathData="M150,772 L72,276 C65,233 85,219 121,207 L549,59 L569,176 C575,211 595,219 628,211 L740,182Z" />
+
+            <path
+                android:name="tl_surface"
+                android:fillAlpha="0"
+                android:pathData="M50,40 L780,40 L780,800 L50,800Z">
+                <aapt:attr name="android:fillColor">
+                    <gradient
+                        android:type="linear"
+                        android:startX="123"
+                        android:startY="154"
+                        android:endX="671"
+                        android:endY="610">
+                        <item android:offset="0" android:color="#FFfa0204" />
+                        <item android:offset="0.7" android:color="#FFf50002" />
+                        <item android:offset="1" android:color="#FFe60002" />
+                    </gradient>
+                </aapt:attr>
+            </path>
+
+            <path
+                android:name="tl_highlight"
+                android:fillAlpha="0"
+                android:fillColor="#ff2924"
+                android:pathData="M575,205 L692,175 L565,335 L535,245Z" />
+
+            <path
+                android:name="tl_shadow_mid"
+                android:fillAlpha="0"
+                android:fillColor="#d90003"
+                android:pathData="M692,175 L740,165 L540,395 L495,365Z" />
+
+            <path
+                android:name="tl_shadow_deep"
+                android:fillAlpha="0"
+                android:fillColor="#b80002"
+                android:pathData="M740,165 L780,155 L765,205 L520,425 L490,400Z" />
+        </group>
+
+        <!-- TL Scanner Brackets -->
+        <path
+            android:name="tl_btl_s"
+            android:fillAlpha="0"
+            android:fillColor="#b30002"
+            android:pathData="M188,430 L222,421 L227,439 L191,448Z M212,338 L291,318 L295,333 L215,352Z" />
+        <path
+            android:name="tl_btl"
+            android:fillAlpha="0"
+            android:fillColor="#ffffff"
+            android:pathData="M167,315 C166,309 169,306 175,304 L280,279 C284,278 286,280 287,284 L292,314 C293,317 291,319 287,320 L211,339 L221,417 C222,421 220,423 216,424 L188,431 C184,432 182,430 181,426Z" />
+
+        <!-- Top-Right Bracket (sliced) -->
+        <path
+            android:name="tl_btr_s"
+            android:fillAlpha="0"
+            android:fillColor="#b30002"
+            android:pathData="M481,272 L567,251 L569,267 L484,287Z" />
+        <path
+            android:name="tl_btr"
+            android:fillAlpha="0"
+            android:fillColor="#ffffff"
+            android:pathData="M473,238 C472,234 474,232 478,231 L589,204 C596,202 600,205 601,212 L613,309 L575,347 L567,250 L483,271 C479,272 477,270 476,266Z" />
+        <path
+            android:name="tl_btr_bvl"
+            android:fillAlpha="0"
+            android:pathData="M473,238 C472,234 474,232 478,231 L520,221 L505,265 L483,271 C479,272 477,270 476,266Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="473"
+                    android:startY="234"
+                    android:endX="535"
+                    android:endY="265">
+                    <item android:offset="0" android:color="#FFd9d9d9" />
+                    <item android:offset="0.55" android:color="#FFf2f2f2" />
+                    <item android:offset="1" android:color="#FFffffff" />
+                </gradient>
+            </aapt:attr>
+        </path>
+
+        <!-- Bottom-Left Bracket (sliced) -->
+        <path
+            android:name="tl_bbl_s"
+            android:fillAlpha="0"
+            android:fillColor="#b30002"
+            android:pathData="M235,533 L245,531 L256,607 L247,610Z" />
+        <path
+            android:name="tl_bbl"
+            android:fillAlpha="0"
+            android:fillColor="#ffffff"
+            android:pathData="M198,543 C197,539 199,537 203,536 L231,529 C235,528 237,530 238,534 L247,610 L310,594 L316,606 L264,658 L225,660 C218,661 213,657 212,649Z" />
+        <path
+            android:name="tl_bbl_bvl"
+            android:fillAlpha="0"
+            android:pathData="M212,649 C213,657 218,661 225,660 L264,658 L316,606 L310,594 L247,610Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="225"
+                    android:startY="658"
+                    android:endX="295"
+                    android:endY="605">
+                    <item android:offset="0" android:color="#FFd6d6d6" />
+                    <item android:offset="0.5" android:color="#FFf3f3f3" />
+                    <item android:offset="1" android:color="#FFffffff" />
+                </gradient>
+            </aapt:attr>
+        </path>
+
+        <!-- Folded Corner Flap -->
+        <path
+            android:name="tl_fold_rim"
+            android:fillAlpha="0"
+            android:fillColor="#dc0b0d"
+            android:pathData="M579,36 L782,138 L622,176 C607,179 600,173 597,158Z" />
+
+        <path
+            android:name="tl_fold_srf"
+            android:fillAlpha="0"
+            android:pathData="M592,55 L754,134 L624,165 C613,167 609,163 607,152Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="592"
+                    android:startY="55"
+                    android:endX="754"
+                    android:endY="167">
+                    <item android:offset="0" android:color="#FFff0a0c" />
+                    <item android:offset="1" android:color="#FFec0002" />
+                </gradient>
+            </aapt:attr>
+        </path>
+
+    </group>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         GROUP 3: BOTTOM-RIGHT HALF (from final_sliced_logo.svg)
+         Hidden at start. Appears shifted inward, slides outward.
+         ════════════════════════════════════════════════════════════════ -->
+    <group
+        android:name="grp_bottom_right"
+        android:translateX="-22"
+        android:translateY="22">
+
+        <!-- Black Casing -->
+        <path
+            android:name="br_outline"
+            android:fillAlpha="0"
+            android:fillColor="#000000"
+            android:pathData="M160,884 L784,260 C794,250 801,256 803,272 L856,714 C865,772 840,790 795,804 L212,975 C172,986 150,962 155,918Z" />
+
+        <!-- Red Bevel / Rim -->
+        <path
+            android:name="br_rim"
+            android:fillAlpha="0"
+            android:pathData="M178,886 L770,294 L832,715 C839,758 821,770 788,780 L218,949 C185,958 168,938 172,908Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="304"
+                    android:startY="491"
+                    android:endX="766"
+                    android:endY="916">
+                    <item android:offset="0" android:color="#FFe50709" />
+                    <item android:offset="1" android:color="#FFbf0002" />
+                </gradient>
+            </aapt:attr>
+        </path>
+
+        <!-- Inner Surface (clipped) -->
+        <group>
+            <clip-path
+                android:pathData="M192,886 L760,318 L819,711 C825,748 812,759 784,767 L222,935 C196,942 185,925 188,902Z" />
+
+            <path
+                android:name="br_surface"
+                android:fillAlpha="0"
+                android:fillColor="#f50002"
+                android:pathData="M170,290 L840,290 L840,960 L170,960Z" />
+
+            <path
+                android:name="br_band_mid"
+                android:fillAlpha="0"
+                android:fillColor="#dc0002"
+                android:pathData="M265,925 L785,392 L840,480 L840,960Z" />
+
+            <path
+                android:name="br_band_deep"
+                android:fillAlpha="0"
+                android:fillColor="#c70002"
+                android:pathData="M395,892 L798,482 L845,760 L840,960Z" />
+        </group>
+
+        <!-- Bottom-Right Scanner Bracket -->
+        <path
+            android:name="br_bbr_s"
+            android:fillAlpha="0"
+            android:fillColor="#a30002"
+            android:pathData="M576,612 L693,582 L696,597 L579,627Z" />
+        <path
+            android:name="br_bbr"
+            android:fillAlpha="0"
+            android:fillColor="#ffffff"
+            android:pathData="M640,478 C639,474 641,472 645,471 L673,464 C677,463 679,465 680,469 L694,575 C695,580 692,583 687,585 L578,612 C574,613 572,611 571,607 L567,579 C566,575 568,573 572,572 L651,553Z" />
+
+    </group>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         GROUP 4: DIAGONAL SLASH (from final_sliced_logo.svg)
+         Hidden at start. Scales from center (0→1) and fades in.
+         ════════════════════════════════════════════════════════════════ -->
+    <group
+        android:name="grp_slash"
+        android:pivotX="500"
+        android:pivotY="500"
+        android:scaleX="0"
+        android:scaleY="0">
+
+        <!-- Black Blade Casing -->
+        <path
+            android:name="sl_outline"
+            android:fillAlpha="0"
+            android:fillColor="#000000"
+            android:pathData="M42,958 L486,486 L965,35 L514,514Z" />
+
+        <!-- Dark Crimson Blade Facet -->
+        <path
+            android:name="sl_dark"
+            android:fillAlpha="0"
+            android:pathData="M55,945 L500,500 L955,45 L509,509Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="55"
+                    android:startY="945"
+                    android:endX="955"
+                    android:endY="45">
+                    <item android:offset="0" android:color="#FF9e0002" />
+                    <item android:offset="0.5" android:color="#FFc90003" />
+                    <item android:offset="0.85" android:color="#FFd40003" />
+                    <item android:offset="1" android:color="#FF9c0002" />
+                </gradient>
+            </aapt:attr>
+        </path>
+
+        <!-- Bright Scarlet Blade Facet -->
+        <path
+            android:name="sl_bright"
+            android:fillAlpha="0"
+            android:pathData="M55,945 L491,491 L955,45 L502,502Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="55"
+                    android:startY="945"
+                    android:endX="955"
+                    android:endY="45">
+                    <item android:offset="0" android:color="#FFd60002" />
+                    <item android:offset="0.25" android:color="#FFf70204" />
+                    <item android:offset="0.65" android:color="#FFff1917" />
+                    <item android:offset="0.82" android:color="#FFff2c28" />
+                    <item android:offset="1" android:color="#FFdc0507" />
+                </gradient>
+            </aapt:attr>
+        </path>
+
+        <!-- Hot Core Highlight Streak (75% opacity in final state) -->
+        <path
+            android:name="sl_core"
+            android:fillAlpha="0"
+            android:fillColor="#ff3830"
+            android:pathData="M535,453 L830,164 L850,150 L547,457Z" />
+
+    </group>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         GROUP 5: LEFT SHARDS (from final_sliced_logo.svg)
+         Hidden at start. Fly outward from center while fading in.
+         ════════════════════════════════════════════════════════════════ -->
+    <group
+        android:name="grp_shards_left"
+        android:translateX="80"
+        android:translateY="-50">
+
+        <path
+            android:name="shl_black"
+            android:fillAlpha="0"
+            android:fillColor="#000000"
+            android:pathData="M19,595 L83,618 L12,626Z" />
+
+        <path
+            android:name="shl_red"
+            android:fillAlpha="0"
+            android:fillColor="#c9070a"
+            android:pathData="M0,639 L70,645 L4,675Z" />
+
+        <path
+            android:name="shl_spark"
+            android:fillAlpha="0"
+            android:fillColor="#9e0406"
+            android:pathData="M71,839 L83,827 L76,839Z" />
+
+    </group>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         GROUP 6: RIGHT SHARDS (from final_sliced_logo.svg)
+         Hidden at start. Fly outward from center while fading in.
+         ════════════════════════════════════════════════════════════════ -->
+    <group
+        android:name="grp_shards_right"
+        android:translateX="-80"
+        android:translateY="50">
+
+        <path
+            android:name="shr_red"
+            android:fillAlpha="0"
+            android:fillColor="#d3080b"
+            android:pathData="M824,342 L863,274 L891,309Z" />
+
+        <path
+            android:name="shr_black"
+            android:fillAlpha="0"
+            android:fillColor="#000000"
+            android:pathData="M828,366 L901,351 L894,385Z" />
+
+    </group>
+
+</vector>

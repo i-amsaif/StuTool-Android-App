@@ -1,0 +1,218 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="100%" height="100%">
+  <defs>
+    <!-- Main Red Gradients -->
+    <linearGradient id="grad-doc-tl-body" x1="10%" y1="15%" x2="85%" y2="75%">
+      <stop offset="0%" stop-color="#fa0204" />
+      <stop offset="70%" stop-color="#f50002" />
+      <stop offset="100%" stop-color="#e60002" />
+    </linearGradient>
+
+    <linearGradient id="grad-doc-tl-border" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e31012" />
+      <stop offset="50%" stop-color="#d40709" />
+      <stop offset="100%" stop-color="#b80002" />
+    </linearGradient>
+
+    <linearGradient id="grad-fold-body" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff0a0c" />
+      <stop offset="100%" stop-color="#ec0002" />
+    </linearGradient>
+
+    <linearGradient id="grad-doc-br-border" x1="20%" y1="30%" x2="90%" y2="95%">
+      <stop offset="0%" stop-color="#e50709" />
+      <stop offset="100%" stop-color="#bf0002" />
+    </linearGradient>
+
+    <linearGradient id="grad-slash-bright" x1="55" y1="945" x2="955" y2="45" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#d60002" />
+      <stop offset="25%" stop-color="#f70204" />
+      <stop offset="65%" stop-color="#ff1917" />
+      <stop offset="82%" stop-color="#ff2c28" />
+      <stop offset="100%" stop-color="#dc0507" />
+    </linearGradient>
+
+    <linearGradient id="grad-slash-dark" x1="55" y1="945" x2="955" y2="45" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#9e0002" />
+      <stop offset="50%" stop-color="#c90003" />
+      <stop offset="85%" stop-color="#d40003" />
+      <stop offset="100%" stop-color="#9c0002" />
+    </linearGradient>
+
+    <linearGradient id="grad-bracket-bevel-tr" x1="473" y1="234" x2="535" y2="265" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#d9d9d9" />
+      <stop offset="55%" stop-color="#f2f2f2" />
+      <stop offset="100%" stop-color="#ffffff" />
+    </linearGradient>
+
+    <linearGradient id="grad-bracket-bevel-bl" x1="225" y1="658" x2="295" y2="605" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#d6d6d6" />
+      <stop offset="50%" stop-color="#f3f3f3" />
+      <stop offset="100%" stop-color="#ffffff" />
+    </linearGradient>
+
+    <!-- Parallel 45-Degree Clip Paths for Top-Left & Bottom-Right Halves -->
+    <clipPath id="clip-doc-tl-inner">
+      <path d="M 150 772 L 72 276 C 65 233 85 219 121 207 L 549 59 L 569 176 C 575 211 595 219 628 211 L 740 182 Z" />
+    </clipPath>
+
+    <clipPath id="clip-doc-br-inner">
+      <path d="M 192 886 L 760 318 L 819 711 C 825 748 812 759 784 767 L 222 935 C 196 942 185 925 188 902 Z" />
+    </clipPath>
+  </defs>
+
+  <!-- 1. Top-Left Document Section -->
+  <g id="document-top-left">
+    <!-- Independent Black Casing for Top-Left Piece -->
+    <path id="doc-tl-black-outline"
+      d="M 138 818 C 127 829 119 822 116 804 L 35 282 C 25 214 58 190 108 172 L 574 11 L 809 126 C 821 132 820 146 806 153 L 776 180 Z"
+      fill="#000000" />
+
+    <!-- Outer Red Bevel / Rim (Cut Line: x + y = 936) -->
+    <path id="doc-tl-rim"
+      d="M 142 794 L 59 278 C 51 226 76 209 116 195 L 559 43 L 581 172 C 587 205 602 206 626 200 L 764 166 L 754 182 Z"
+      fill="url(#grad-doc-tl-border)" />
+
+    <!-- Inner Main Surface & Under-Fold Shadows (Cut Line: x + y = 922) -->
+    <g id="doc-tl-surface" clip-path="url(#clip-doc-tl-inner)">
+      <path d="M 50 40 L 780 40 L 780 800 L 50 800 Z" fill="url(#grad-doc-tl-body)" />
+      <!-- Under-Fold Highlight Wedge -->
+      <polygon points="575,205 692,175 565,335 535,245" fill="#ff2924" />
+      <!-- Under-Fold Mid Shadow Band -->
+      <polygon points="692,175 740,165 540,395 495,365" fill="#d90003" />
+      <!-- Under-Fold Deep Shadow Band -->
+      <polygon points="740,165 780,155 765,205 520,425 490,400" fill="#b80002" />
+    </g>
+
+    <!-- Top-Left Scanner Brackets -->
+    <g id="brackets-top-left">
+      <!-- Top-Left Corner Bracket -->
+      <g id="bracket-top-left">
+        <path id="bracket-tl-shadow"
+          d="M 188 430 L 222 421 L 227 439 L 191 448 Z M 212 338 L 291 318 L 295 333 L 215 352 Z"
+          fill="#b30002" />
+        <path id="bracket-tl-body"
+          d="M 167 315 C 166 309 169 306 175 304 L 280 279 C 284 278 286 280 287 284 L 292 314 C 293 317 291 319 287 320 L 211 339 L 221 417 C 222 421 220 423 216 424 L 188 431 C 184 432 182 430 181 426 Z"
+          fill="#ffffff" />
+      </g>
+
+      <!-- Top-Right Corner Bracket (Cleanly Sliced on Cut Plane) -->
+      <g id="bracket-top-right">
+        <path id="bracket-tr-shadow"
+          d="M 481 272 L 567 251 L 569 267 L 484 287 Z"
+          fill="#b30002" />
+        <path id="bracket-tr-body"
+          d="M 473 238 C 472 234 474 232 478 231 L 589 204 C 596 202 600 205 601 212 L 613 309 L 575 347 L 567 250 L 483 271 C 479 272 477 270 476 266 Z"
+          fill="#ffffff" />
+        <path id="bracket-tr-bevel"
+          d="M 473 238 C 472 234 474 232 478 231 L 520 221 L 505 265 L 483 271 C 479 272 477 270 476 266 Z"
+          fill="url(#grad-bracket-bevel-tr)" />
+      </g>
+
+      <!-- Bottom-Left Corner Bracket (Cleanly Sliced on Cut Plane) -->
+      <g id="bracket-bottom-left">
+        <path id="bracket-bl-shadow"
+          d="M 235 533 L 245 531 L 256 607 L 247 610 Z"
+          fill="#b30002" />
+        <path id="bracket-bl-body"
+          d="M 198 543 C 197 539 199 537 203 536 L 231 529 C 235 528 237 530 238 534 L 247 610 L 310 594 L 316 606 L 264 658 L 225 660 C 218 661 213 657 212 649 Z"
+          fill="#ffffff" />
+        <path id="bracket-bl-bevel"
+          d="M 212 649 C 213 657 218 661 225 660 L 264 658 L 316 606 L 310 594 L 247 610 Z"
+          fill="url(#grad-bracket-bevel-bl)" />
+      </g>
+    </g>
+
+    <!-- Folded Corner Flap -->
+    <g id="document-fold">
+      <path id="fold-rim"
+        d="M 579 36 L 782 138 L 622 176 C 607 179 600 173 597 158 Z"
+        fill="#dc0b0d" />
+      <path id="fold-surface"
+        d="M 592 55 L 754 134 L 624 165 C 613 167 609 163 607 152 Z"
+        fill="url(#grad-fold-body)" />
+    </g>
+  </g>
+
+  <!-- 2. Bottom-Right Document Section -->
+  <g id="document-bottom-right">
+    <!-- Independent Black Casing for Bottom-Right Piece -->
+    <path id="doc-br-black-outline"
+      d="M 160 884 L 784 260 C 794 250 801 256 803 272 L 856 714 C 865 772 840 790 795 804 L 212 975 C 172 986 150 962 155 918 Z"
+      fill="#000000" />
+
+    <!-- Outer Red Bevel / Rim (Cut Line: x + y = 1064) -->
+    <path id="doc-br-rim"
+      d="M 178 886 L 770 294 L 832 715 C 839 758 821 770 788 780 L 218 949 C 185 958 168 938 172 908 Z"
+      fill="url(#grad-doc-br-border)" />
+
+    <!-- Inner Surface with 3 Diagonal Tonal Zones (Cut Line: x + y = 1078) -->
+    <g id="doc-br-surface" clip-path="url(#clip-doc-br-inner)">
+      <!-- Zone 1: Upper-Left Bright Red -->
+      <path d="M 170 290 L 840 290 L 840 960 L 170 960 Z" fill="#f50002" />
+      <!-- Zone 2: Middle Diagonal Band -->
+      <polygon points="265,925 785,392 840,480 840,960" fill="#dc0002" />
+      <!-- Zone 3: Bottom-Right Deep Red -->
+      <polygon points="395,892 798,482 845,760 840,960" fill="#c70002" />
+    </g>
+
+    <!-- Bottom-Right Scanner Bracket -->
+    <g id="bracket-bottom-right">
+      <path id="bracket-br-shadow"
+        d="M 576 612 L 693 582 L 696 597 L 579 627 Z"
+        fill="#a30002" />
+      <path id="bracket-br-body"
+        d="M 640 478 C 639 474 641 472 645 471 L 673 464 C 677 463 679 465 680 469 L 694 575 C 695 580 692 583 687 585 L 578 612 C 574 613 572 611 571 607 L 567 579 C 566 575 568 573 572 572 L 651 553 Z"
+        fill="#ffffff" />
+    </g>
+  </g>
+
+  <!-- 3. Diagonal Slash / Laser Cut (Centered on x + y = 1000 with Transparent Side Channels) -->
+  <g id="diagonal-slash">
+    <!-- Fitted Black Blade Casing -->
+    <path id="slash-black-outline"
+      d="M 42 958 L 486 486 L 965 35 L 514 514 Z"
+      fill="#000000" />
+
+    <!-- Lower-Right Dark Crimson Blade Facet -->
+    <path id="slash-facet-dark"
+      d="M 55 945 L 500 500 L 955 45 L 509 509 Z"
+      fill="url(#grad-slash-dark)" />
+
+    <!-- Upper-Left Bright Scarlet Blade Facet -->
+    <path id="slash-facet-bright"
+      d="M 55 945 L 491 491 L 955 45 L 502 502 Z"
+      fill="url(#grad-slash-bright)" />
+
+    <!-- Hot Core Highlight Streak -->
+    <path id="slash-core-highlight"
+      d="M 535 453 L 830 164 L 850 150 L 547 457 Z"
+      fill="#ff3830"
+      opacity="0.75" />
+  </g>
+
+  <!-- 4. Flying Shards / Debris (Red & Black Pairs) -->
+  <g id="flying-shards">
+    <!-- Left Shard Pair -->
+    <g id="shards-left">
+      <polygon id="shard-black-left"
+        points="19,595 83,618 12,626"
+        fill="#000000" />
+      <polygon id="shard-red-left"
+        points="0,639 70,645 4,675"
+        fill="#c9070a" />
+      <polygon id="shard-left-spark"
+        points="71,839 83,827 76,839"
+        fill="#9e0406" />
+    </g>
+
+    <!-- Right Shard Pair -->
+    <g id="shards-right">
+      <polygon id="shard-red-right"
+        points="824,342 863,274 891,309"
+        fill="#d3080b" />
+      <polygon id="shard-black-right"
+        points="828,366 901,351 894,385"
+        fill="#000000" />
+    </g>
+  </g>
+</svg>

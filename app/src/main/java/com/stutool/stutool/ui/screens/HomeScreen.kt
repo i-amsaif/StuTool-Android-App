@@ -32,7 +32,6 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import com.stutool.stutool.navigation.Screen
 import com.stutool.stutool.ui.components.SectionHeader
 import com.stutool.stutool.ui.components.ToolCard
@@ -123,7 +122,7 @@ fun HomeScreen(navController: NavController) {
         Button(
             onClick = {
                 navController.navigate(Screen.Resume.route) {
-                    popUpTo(navController.graph.findStartDestination().id) {
+                    popUpTo(Screen.Home.route) {
                         saveState = true
                     }
                     launchSingleTop = true
@@ -216,7 +215,7 @@ fun HomeScreen(navController: NavController) {
                     description = "View, read and organize your PDF files safely.",
                     onClick = {
                         navController.navigate(Screen.Viewer.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
+                            popUpTo(Screen.Home.route) {
                                 saveState = true
                             }
                             launchSingleTop = true
@@ -233,7 +232,7 @@ fun HomeScreen(navController: NavController) {
                     description = "Merge, split, compress and format your PDFs easily.",
                     onClick = {
                         navController.navigate(Screen.Tools.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
+                            popUpTo(Screen.Home.route) {
                                 saveState = true
                             }
                             launchSingleTop = true
@@ -257,7 +256,7 @@ fun HomeScreen(navController: NavController) {
                     description = "Create ATS-friendly resumes in minutes.",
                     onClick = {
                         navController.navigate(Screen.Resume.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
+                            popUpTo(Screen.Home.route) {
                                 saveState = true
                             }
                             launchSingleTop = true
@@ -274,7 +273,7 @@ fun HomeScreen(navController: NavController) {
                     description = "Scan documents cleanly directly from your camera.",
                     onClick = {
                         navController.navigate(Screen.Scan.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
+                            popUpTo(Screen.Home.route) {
                                 saveState = true
                             }
                             launchSingleTop = true
@@ -308,7 +307,7 @@ private fun FeatureBadge(label: String) {
             Icon(
                 imageVector = Icons.Rounded.Check,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onBackground,
+                tint = Color.White,
                 modifier = Modifier.size(14.dp)
             )
         }

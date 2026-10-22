@@ -10,6 +10,21 @@ class RecentPdfRepository(private val appContext: Context) {
     private val prefs: SharedPreferences = appContext.getSharedPreferences("pdf_prefs", Context.MODE_PRIVATE)
     
     companion object {
+        // In-flight copy paths currently actively being written or processed
+        private val inFlightCopyPaths = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+
+        fun registerInFlightCopy(path: String): AutoCloseable {
+            val canonical = try { java.io.File(path).canonicalPath } catch (_: Exception) { java.io.File(path).absolutePath }
+            inFlightCopyPaths.add(canonical)
+            return AutoCloseable {
+                inFlightCopyPaths.remove(canonical)
+            }
+        }
+
+        fun isInFlightCopy(path: String): Boolean {
+            val canonical = try { java.io.File(path).canonicalPath } catch (_: Exception) { java.io.File(path).absolutePath }
+            return inFlightCopyPaths.contains(canonical)
+        }
         private const val KEY_RECENT_PDFS = "recent_pdfs"
         private const val KEY_MIGRATION_DONE = "dedup_migration_v1"
         private const val MAX_RECENT = 50
@@ -67,31 +82,86 @@ class RecentPdfRepository(private val appContext: Context) {
         val currentList = getRecentPdfs().toMutableList()
 
         // Find existing entry by stable identity (name+size fingerprint)
-        val existingIndex = currentList.indexOfFirst { it.fileIdentity == pdf.fileIdentity }
+        val existingIndex = currentList.indexOfFirst {
+            it.uri == pdf.uri || (
+                it.fileIdentity == pdf.fileIdentity &&
+                (it.localCopyPath == null || pdf.localCopyPath == null || it.localCopyPath == pdf.localCopyPath)
+            )
+        }
 
         if (existingIndex != -1) {
             val existing = currentList.removeAt(existingIndex)
             // Merge: keep favourite/localCopy from old, take URI & timestamp from new
+            val mergedCopyPath = pdf.localCopyPath ?: existing.localCopyPath
+            // If the incoming entry provided a new copy path that supersedes the old one:
+            if (existing.uri == pdf.uri && existing.localCopyPath != null && pdf.localCopyPath != null && existing.localCopyPath != pdf.localCopyPath) {
+                val isOldReferencedElsewhere = currentList.any { it.localCopyPath == existing.localCopyPath }
+                if (!isOldReferencedElsewhere) {
+                    safeDeleteFile(existing.localCopyPath)
+                }
+            }
             currentList.add(0, pdf.copy(
                 isFavorite = existing.isFavorite,
-                localCopyPath = pdf.localCopyPath ?: existing.localCopyPath,
+                localCopyPath = mergedCopyPath,
                 fileIdentity = pdf.fileIdentity
             ))
         } else {
             // Also check by exact URI as a secondary dedup (covers edge cases
             // where name/size couldn't be resolved on a previous save).
+            val removedByUri = currentList.filter { it.uri == pdf.uri }
             currentList.removeAll { it.uri == pdf.uri }
             currentList.add(0, pdf)
+
+            // Clean up unreferenced copies from removed entries
+            val keptPaths = currentList.mapNotNull { it.localCopyPath }.toSet()
+            for (removed in removedByUri) {
+                removed.localCopyPath?.let { path ->
+                    if (path !in keptPaths) safeDeleteFile(path)
+                }
+            }
         }
 
-        saveList(currentList.take(MAX_RECENT))
+        // Handle MAX_RECENT eviction
+        val keptList = currentList.take(MAX_RECENT)
+        val evictedList = currentList.drop(MAX_RECENT)
+        if (evictedList.isNotEmpty()) {
+            val keptPaths = keptList.mapNotNull { it.localCopyPath }.toSet()
+            for (evicted in evictedList) {
+                evicted.localCopyPath?.let { path ->
+                    if (path !in keptPaths) {
+                        safeDeleteFile(path)
+                    }
+                }
+            }
+        }
+
+        saveList(keptList)
         android.util.Log.d("PDF_DEBUG", "saveRecentPdf succeeded")
     }
 
     fun deleteRecentPdf(uri: String) {
         val currentList = getRecentPdfs().toMutableList()
-        currentList.removeAll { it.uri == uri }
+        val removed = mutableListOf<RecentPdf>()
+        val iterator = currentList.iterator()
+        while (iterator.hasNext()) {
+            val item = iterator.next()
+            if (item.uri == uri) {
+                removed.add(item)
+                iterator.remove()
+            }
+        }
+        if (removed.isEmpty()) return
         saveList(currentList)
+
+        // Delete copy only if no remaining entry references the same path
+        val remainingPaths = currentList.mapNotNull { it.localCopyPath }.toSet()
+        for (item in removed) {
+            item.localCopyPath?.let { path ->
+                if (path !in remainingPaths) {
+                    safeDeleteFile(path)
+                }
+            }
+        }
     }
 
     fun toggleFavorite(uri: String) {
@@ -135,7 +205,13 @@ class RecentPdfRepository(private val appContext: Context) {
     }
 
     fun clearAllRecentPdfs() {
+        val currentList = getRecentPdfs()
         saveList(emptyList())
+
+        val uniquePaths = currentList.mapNotNull { it.localCopyPath }.toSet()
+        for (path in uniquePaths) {
+            safeDeleteFile(path)
+        }
     }
 
     /**
@@ -148,21 +224,97 @@ class RecentPdfRepository(private val appContext: Context) {
         val currentList = getRecentPdfs().toMutableList()
         val sizeBefore = currentList.size
 
-        currentList.removeAll { pdf ->
+        val removed = mutableListOf<RecentPdf>()
+        val iterator = currentList.iterator()
+        while (iterator.hasNext()) {
+            val pdf = iterator.next()
             val accessible = isAccessible(pdf)
             if (!accessible) {
                 android.util.Log.d("PDF_DEBUG", "pruning entry: uri=${pdf.uri}, fileIdentity=${pdf.fileIdentity}, localCopyPath=${pdf.localCopyPath}")
+                removed.add(pdf)
+                iterator.remove()
             }
-            !accessible
         }
 
-        return if (currentList.size < sizeBefore) {
+        val entriesPruned = if (currentList.size < sizeBefore) {
             saveList(currentList)
+            val remainingPaths = currentList.mapNotNull { it.localCopyPath }.toSet()
+            for (item in removed) {
+                item.localCopyPath?.let { path ->
+                    if (path !in remainingPaths) {
+                        safeDeleteFile(path)
+                    }
+                }
+            }
             android.util.Log.d("PDF_DEBUG", "pruneInaccessibleEntries deleted ${sizeBefore - currentList.size} entries")
             true
         } else {
             android.util.Log.d("PDF_DEBUG", "pruneInaccessibleEntries deleted 0 entries")
             false
+        }
+
+        // Reconcile any unreferenced orphaned files in filesDir/pdf_copies/
+        reconcileOrphanedCopies(currentList)
+
+        return entriesPruned
+    }
+
+    /**
+     * Reconciles filesDir/pdf_copies/ by deleting any copy that is no longer
+     * referenced by any entry in [retainedEntries].
+     * Includes a 60-second grace window to protect in-flight copy creation.
+     */
+    fun reconcileOrphanedCopies(retainedEntries: List<RecentPdf> = getRecentPdfs()) {
+        try {
+            val dir = java.io.File(appContext.filesDir, "pdf_copies")
+            if (!dir.exists() || !dir.isDirectory) return
+
+            val retainedPaths = retainedEntries
+                .mapNotNull { it.localCopyPath }
+                .map { try { java.io.File(it).canonicalPath } catch (_: Exception) { java.io.File(it).absolutePath } }
+                .toSet()
+
+            val files = dir.listFiles() ?: return
+            val now = System.currentTimeMillis()
+            for (file in files) {
+                if (file.isFile) {
+                    val canonical = try { file.canonicalPath } catch (_: Exception) { file.absolutePath }
+                    if (canonical !in retainedPaths) {
+                        // Never touch an in-flight copy actively being written or processed
+                        if (isInFlightCopy(canonical)) continue
+                        val ageMs = now - file.lastModified()
+                        // 60s grace window protects newly created copies during active streaming
+                        if (ageMs > 60_000L) {
+                            file.delete()
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("RecentPdfRepo", "Error reconciling orphaned copies", e)
+        }
+    }
+
+    private fun safeDeleteFile(path: String) {
+        try {
+            val file = java.io.File(path)
+            // Safety guard: only delete if within the dedicated persistent copy directory
+            val copiesDir = java.io.File(appContext.filesDir, "pdf_copies").canonicalFile
+            val targetCanonical = file.canonicalFile
+            if (targetCanonical.parentFile == copiesDir || targetCanonical.absolutePath.startsWith(copiesDir.absolutePath)) {
+                if (isInFlightCopy(targetCanonical.path)) {
+                    android.util.Log.w("RecentPdfRepo", "Refusing to delete in-flight file: $path")
+                    return
+                }
+                if (file.exists() && file.isFile) {
+                    val deleted = file.delete()
+                    android.util.Log.d("PDF_DEBUG", "safeDeleteFile: $path, success=$deleted")
+                }
+            } else {
+                android.util.Log.w("RecentPdfRepo", "Refusing to delete file outside pdf_copies: $path")
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("RecentPdfRepo", "Failed to safely delete file at: $path", e)
         }
     }
 

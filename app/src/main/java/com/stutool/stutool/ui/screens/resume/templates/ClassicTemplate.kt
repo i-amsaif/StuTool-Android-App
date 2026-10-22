@@ -18,6 +18,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.stutool.stutool.ui.screens.resume.models.ResumeData
+import com.stutool.stutool.ui.screens.resume.utils.PageBreakAwareBlock
 
 /**
  * Classic Template:
@@ -107,16 +108,18 @@ fun ClassicTemplate(data: ResumeData) {
         if (data.careerObjective.isNotBlank()) {
             Column(modifier = Modifier.padding(top = 22.dp)) {
                 ClassicSectionHeader("OBJECTIVE")
-                Text(
-                    text = data.careerObjective,
-                    fontSize = 11.sp,
-                    color = ClassicGray,
-                    fontFamily = FontFamily.Serif,
-                    lineHeight = 16.sp,
-                    fontStyle = FontStyle.Italic,
-                    modifier = Modifier.padding(top = 6.dp, start = 4.dp),
-                    textAlign = TextAlign.Justify
-                )
+                PageBreakAwareBlock {
+                    Text(
+                        text = data.careerObjective,
+                        fontSize = 11.sp,
+                        color = ClassicGray,
+                        fontFamily = FontFamily.Serif,
+                        lineHeight = 16.sp,
+                        fontStyle = FontStyle.Italic,
+                        modifier = Modifier.padding(top = 6.dp, start = 4.dp),
+                        textAlign = TextAlign.Justify
+                    )
+                }
             }
         }
 
@@ -126,6 +129,7 @@ fun ClassicTemplate(data: ResumeData) {
             Column(modifier = Modifier.padding(top = 22.dp)) {
                 ClassicSectionHeader("PROFESSIONAL EXPERIENCE")
                 for (exp in validExperience) {
+                    com.stutool.stutool.ui.screens.resume.utils.PageBreakAwareBlock { androidx.compose.foundation.layout.Column {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -164,6 +168,7 @@ fun ClassicTemplate(data: ResumeData) {
                     if (exp.description.isNotBlank()) {
                         ClassicBulletPoints(exp.description)
                     }
+                    } }
                 }
             }
         }
@@ -174,6 +179,7 @@ fun ClassicTemplate(data: ResumeData) {
             Column(modifier = Modifier.padding(top = 22.dp)) {
                 ClassicSectionHeader("EDUCATION")
                 for (edu in validEducation) {
+                    com.stutool.stutool.ui.screens.resume.utils.PageBreakAwareBlock { androidx.compose.foundation.layout.Column {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -221,23 +227,27 @@ fun ClassicTemplate(data: ResumeData) {
                     if (edu.description.isNotBlank()) {
                         ClassicBulletPoints(edu.description)
                     }
+                    } }
                 }
             }
         }
 
         // --- Skills ---
-        if (data.visibleSections.skills && data.skills.isNotEmpty()) {
+        val validSkills = data.skills.map { it.trim() }.filter { it.isNotBlank() }
+        if (data.visibleSections.skills && validSkills.isNotEmpty()) {
             Column(modifier = Modifier.padding(top = 22.dp)) {
                 ClassicSectionHeader("SKILLS")
-                Text(
-                    text = data.skills.joinToString("   •   "),
-                    fontSize = 11.sp,
-                    color = Color.Black,
-                    fontFamily = FontFamily.Serif,
-                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-                    textAlign = TextAlign.Center,
-                    letterSpacing = 0.3.sp
-                )
+                PageBreakAwareBlock {
+                    Text(
+                        text = validSkills.joinToString("   •   "),
+                        fontSize = 11.sp,
+                        color = Color.Black,
+                        fontFamily = FontFamily.Serif,
+                        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                        textAlign = TextAlign.Center,
+                        letterSpacing = 0.3.sp
+                    )
+                }
             }
         }
 
@@ -247,6 +257,7 @@ fun ClassicTemplate(data: ResumeData) {
             Column(modifier = Modifier.padding(top = 22.dp)) {
                 ClassicSectionHeader("PROJECTS")
                 for (proj in validProjects) {
+                    com.stutool.stutool.ui.screens.resume.utils.PageBreakAwareBlock { androidx.compose.foundation.layout.Column {
                     Text(
                         text = buildAnnotatedString {
                             withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = ClassicNavy)) {
@@ -269,6 +280,160 @@ fun ClassicTemplate(data: ResumeData) {
                     if (proj.description.isNotBlank()) {
                         ClassicBulletPoints(proj.description)
                     }
+                    } }
+                }
+            }
+        }
+
+        // --- Certifications ---
+        val validCertifications = data.certifications.filter { it.name.isNotBlank() || it.issuer.isNotBlank() }
+        if (data.visibleSections.certifications && validCertifications.isNotEmpty()) {
+            Column(modifier = Modifier.padding(top = 22.dp)) {
+                ClassicSectionHeader("CERTIFICATIONS")
+                for (cert in validCertifications) {
+                    PageBreakAwareBlock {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = buildAnnotatedString {
+                                    val primary = cert.name.ifBlank { cert.issuer }
+                                    withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = ClassicNavy)) {
+                                        append(primary)
+                                    }
+                                    if (cert.name.isNotBlank() && cert.issuer.isNotBlank()) {
+                                        withStyle(SpanStyle(fontStyle = FontStyle.Italic, color = ClassicGray)) {
+                                            append("  —  ${cert.issuer}")
+                                        }
+                                    }
+                                    val cleanLink = cert.link.trim().removePrefix("https://").removePrefix("http://").removePrefix("www.")
+                                    if (cleanLink.isNotBlank()) {
+                                        withStyle(SpanStyle(fontStyle = FontStyle.Italic, color = ClassicGray, fontSize = 10.sp)) {
+                                            append("  |  $cleanLink")
+                                        }
+                                    }
+                                },
+                                fontSize = 11.sp,
+                                color = Color.Black,
+                                fontFamily = FontFamily.Serif,
+                                modifier = Modifier.weight(1f).padding(end = 8.dp)
+                            )
+                            if (cert.date.isNotBlank()) {
+                                Text(
+                                    text = cert.date,
+                                    fontSize = 10.sp,
+                                    color = ClassicGray,
+                                    fontFamily = FontFamily.Serif,
+                                    fontStyle = FontStyle.Italic
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- Achievements ---
+        val validAchievements = data.achievements.filter { it.title.isNotBlank() || it.description.isNotBlank() }
+        if (data.visibleSections.achievements && validAchievements.isNotEmpty()) {
+            Column(modifier = Modifier.padding(top = 22.dp)) {
+                ClassicSectionHeader("ACHIEVEMENTS")
+                for (ach in validAchievements) {
+                    PageBreakAwareBlock {
+                        Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                            if (ach.title.isNotBlank() || ach.date.isNotBlank()) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    if (ach.title.isNotBlank()) {
+                                        Text(
+                                            text = ach.title,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = ClassicNavy,
+                                            fontFamily = FontFamily.Serif,
+                                            modifier = Modifier.weight(1f).padding(end = 8.dp)
+                                        )
+                                    } else {
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    }
+                                    if (ach.date.isNotBlank()) {
+                                        Text(
+                                            text = ach.date,
+                                            fontSize = 10.sp,
+                                            color = ClassicGray,
+                                            fontFamily = FontFamily.Serif,
+                                            fontStyle = FontStyle.Italic
+                                        )
+                                    }
+                                }
+                            }
+                            if (ach.description.isNotBlank()) {
+                                ClassicBulletPoints(ach.description)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- Extracurricular Activities ---
+        val validExtracurriculars = data.extracurriculars.filter {
+            it.title.isNotBlank() || it.organization.isNotBlank() || it.description.isNotBlank()
+        }
+        if (data.visibleSections.extracurriculars && validExtracurriculars.isNotEmpty()) {
+            Column(modifier = Modifier.padding(top = 22.dp)) {
+                ClassicSectionHeader("EXTRACURRICULAR ACTIVITIES")
+                for (extra in validExtracurriculars) {
+                    PageBreakAwareBlock {
+                        Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                            if (extra.title.isNotBlank() || extra.organization.isNotBlank() || extra.date.isNotBlank()) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    val headingText = buildAnnotatedString {
+                                        val primary = extra.title.ifBlank { extra.organization }
+                                        withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = ClassicNavy)) {
+                                            append(primary)
+                                        }
+                                        if (extra.title.isNotBlank() && extra.organization.isNotBlank()) {
+                                            withStyle(SpanStyle(fontStyle = FontStyle.Italic, color = ClassicGray)) {
+                                                append("  —  ${extra.organization}")
+                                            }
+                                        }
+                                    }
+                                    if (headingText.text.isNotBlank()) {
+                                        Text(
+                                            text = headingText,
+                                            fontSize = 11.sp,
+                                            color = Color.Black,
+                                            fontFamily = FontFamily.Serif,
+                                            modifier = Modifier.weight(1f).padding(end = 8.dp)
+                                        )
+                                    } else {
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    }
+                                    if (extra.date.isNotBlank()) {
+                                        Text(
+                                            text = extra.date,
+                                            fontSize = 10.sp,
+                                            color = ClassicGray,
+                                            fontFamily = FontFamily.Serif,
+                                            fontStyle = FontStyle.Italic
+                                        )
+                                    }
+                                }
+                            }
+                            if (extra.description.isNotBlank()) {
+                                ClassicBulletPoints(extra.description)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -277,14 +442,16 @@ fun ClassicTemplate(data: ResumeData) {
         if (data.personal.languages.isNotBlank()) {
             Column(modifier = Modifier.padding(top = 22.dp)) {
                 ClassicSectionHeader("LANGUAGES")
-                Text(
-                    text = data.personal.languages,
-                    fontSize = 11.sp,
-                    color = Color.Black,
-                    fontFamily = FontFamily.Serif,
-                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-                    textAlign = TextAlign.Center
-                )
+                PageBreakAwareBlock {
+                    Text(
+                        text = data.personal.languages,
+                        fontSize = 11.sp,
+                        color = Color.Black,
+                        fontFamily = FontFamily.Serif,
+                        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
 
@@ -292,37 +459,41 @@ fun ClassicTemplate(data: ResumeData) {
         if (data.visibleSections.declaration && data.declaration.enabled) {
             Column(modifier = Modifier.padding(top = 28.dp)) {
                 ClassicSectionHeader("DECLARATION")
-                Text(
-                    text = "I hereby declare that all the information provided is true and correct to the best of my knowledge.",
-                    fontSize = 10.sp,
-                    color = ClassicGray,
-                    fontFamily = FontFamily.Serif,
-                    fontStyle = FontStyle.Italic,
-                    lineHeight = 15.sp,
-                    modifier = Modifier.padding(top = 8.dp),
-                    textAlign = TextAlign.Justify
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
+                PageBreakAwareBlock {
                     Column {
-                        if (data.declaration.place.isNotBlank()) {
-                            Text("Place: ${data.declaration.place}", fontSize = 10.sp, color = ClassicGray, fontFamily = FontFamily.Serif)
-                        }
-                        if (data.declaration.date.isNotBlank()) {
-                            Text("Date: ${data.declaration.date}", fontSize = 10.sp, color = ClassicGray, fontFamily = FontFamily.Serif)
-                        }
-                    }
-                    if (data.personal.name.isNotBlank()) {
                         Text(
-                            text = "(${data.personal.name})",
+                            text = "I hereby declare that all the information provided is true and correct to the best of my knowledge.",
                             fontSize = 10.sp,
-                            color = ClassicNavy,
-                            fontWeight = FontWeight.Bold,
+                            color = ClassicGray,
                             fontFamily = FontFamily.Serif,
-                            modifier = Modifier.align(Alignment.Bottom)
+                            fontStyle = FontStyle.Italic,
+                            lineHeight = 15.sp,
+                            modifier = Modifier.padding(top = 8.dp),
+                            textAlign = TextAlign.Justify
                         )
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column {
+                                if (data.declaration.place.isNotBlank()) {
+                                    Text("Place: ${data.declaration.place}", fontSize = 10.sp, color = ClassicGray, fontFamily = FontFamily.Serif)
+                                }
+                                if (data.declaration.date.isNotBlank()) {
+                                    Text("Date: ${data.declaration.date}", fontSize = 10.sp, color = ClassicGray, fontFamily = FontFamily.Serif)
+                                }
+                            }
+                            if (data.personal.name.isNotBlank()) {
+                                Text(
+                                    text = "(${data.personal.name})",
+                                    fontSize = 10.sp,
+                                    color = ClassicNavy,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Serif,
+                                    modifier = Modifier.align(Alignment.Bottom)
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -335,6 +506,7 @@ fun ClassicTemplate(data: ResumeData) {
  */
 @Composable
 private fun ClassicSectionHeader(title: String) {
+    com.stutool.stutool.ui.screens.resume.utils.PageBreakAwareBlock(isHeader = true) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -359,6 +531,7 @@ private fun ClassicSectionHeader(title: String) {
             color = ClassicLightRule,
             thickness = 0.5.dp
         )
+    }
     }
 }
 

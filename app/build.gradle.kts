@@ -12,20 +12,20 @@ android {
     namespace = "com.stutool.stutool"
     compileSdk = 36
 
+    val properties = Properties()
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use { properties.load(it) }
+    }
+
     defaultConfig {
         applicationId = "com.stutool.stutool"
         minSdk = 24
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 4
+        versionName = "1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        val properties = Properties()
-        val localPropertiesFile = rootProject.file("local.properties")
-        if (localPropertiesFile.exists()) {
-            properties.load(FileInputStream(localPropertiesFile))
-        }
         
         val geminiKey = properties.getProperty("GEMINI_API_KEY")
         buildConfigField("String", "GEMINI_API_KEY", if (geminiKey != null) "\"$geminiKey\"" else "\"PLACEHOLDER\"")
@@ -35,23 +35,50 @@ android {
         
         val openRouterKey = properties.getProperty("OPENROUTER_API_KEY")
         buildConfigField("String", "OPENROUTER_API_KEY", if (openRouterKey != null) "\"$openRouterKey\"" else "\"PLACEHOLDER\"")
+
+        val ocrSpaceKey = properties.getProperty("OCR_SPACE_API_KEY")
+        buildConfigField("String", "OCR_SPACE_API_KEY", if (!ocrSpaceKey.isNullOrBlank()) "\"$ocrSpaceKey\"" else "\"\"")
+
+        val web3FormsKey = properties.getProperty("WEB3FORMS_ACCESS_KEY")
+        buildConfigField("String", "WEB3FORMS_ACCESS_KEY", if (!web3FormsKey.isNullOrBlank()) "\"$web3FormsKey\"" else "\"PLACEHOLDER\"")
     }
 
-    // TODO: Configure signing for release builds by uncommenting below and providing properties
-    // signingConfigs {
-    //     create("release") {
-    //         storeFile = file(properties.getProperty("storeFile", "release.jks"))
-    //         storePassword = properties.getProperty("storePassword")
-    //         keyAlias = properties.getProperty("keyAlias")
-    //         keyPassword = properties.getProperty("keyPassword")
-    //     }
-    // }
+    signingConfigs {
+        create("release") {
+            val keystorePath = properties.getProperty("RELEASE_STORE_FILE")
+                ?: properties.getProperty("storeFile")
+                ?: System.getenv("RELEASE_STORE_FILE")
+            val keystorePassword = properties.getProperty("RELEASE_STORE_PASSWORD")
+                ?: properties.getProperty("storePassword")
+                ?: System.getenv("RELEASE_STORE_PASSWORD")
+            val keyAliasName = properties.getProperty("RELEASE_KEY_ALIAS")
+                ?: properties.getProperty("keyAlias")
+                ?: System.getenv("RELEASE_KEY_ALIAS")
+            val keyPass = properties.getProperty("RELEASE_KEY_PASSWORD")
+                ?: properties.getProperty("keyPassword")
+                ?: System.getenv("RELEASE_KEY_PASSWORD")
+
+            if (!keystorePath.isNullOrBlank()) {
+                val candidateFile = file(keystorePath)
+                val resolvedFile = if (candidateFile.exists()) candidateFile else rootProject.file(keystorePath)
+                if (resolvedFile.exists()) {
+                    storeFile = resolvedFile
+                    storePassword = keystorePassword
+                    keyAlias = keyAliasName
+                    keyPassword = keyPass
+                }
+            }
+        }
+    }
 
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            // signingConfig = signingConfigs.getByName("release")
+            val releaseSigning = signingConfigs.getByName("release")
+            if (releaseSigning.storeFile != null && releaseSigning.storeFile?.exists() == true) {
+                signingConfig = releaseSigning
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -99,11 +126,14 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:1.4.1")
     implementation("androidx.camera:camera-view:1.4.1")
     implementation("androidx.exifinterface:exifinterface:1.3.7")
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.ui)
 
     testImplementation(libs.junit)
     testImplementation("org.robolectric:robolectric:4.11.1")
     testImplementation(libs.androidx.compose.ui.test.junit4)
     testImplementation("androidx.compose.ui:ui-test-manifest:1.6.8")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -111,6 +141,8 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    implementation("com.google.mlkit:text-recognition:16.0.1")
+    implementation("cz.adaptech.tesseract4android:tesseract4android:4.9.0")
 }
 
 kotlin {

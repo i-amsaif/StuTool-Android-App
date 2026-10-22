@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,12 +67,23 @@ fun ResumeBuilderScreen(
     val scope = rememberCoroutineScope()
     var isExporting by remember { mutableStateOf(false) }
 
+    val tutorialPrefs = remember { com.stutool.stutool.tutorial.TutorialPreferences(context) }
+    var showOptInDialog by rememberSaveable { mutableStateOf(false) }
+    var showPlayer by rememberSaveable { mutableStateOf(false) }
+    var sessionPromptHandled by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        if (!sessionPromptHandled && tutorialPrefs.shouldShowTutorialPrompt(com.stutool.stutool.tutorial.TutorialType.RESUME_BUILDER)) {
+            showOptInDialog = true
+        }
+    }
+
     // Pager state: 3 pages (Form, Layout, Preview)
     val pagerState = rememberPagerState(initialPage = tabToIndex(state.activeTab)) { 3 }
 
     // Sync: when pager settles on a new page, update viewModel
-    LaunchedEffect(pagerState.currentPage) {
-        val newTab = indexToTab(pagerState.currentPage)
+    LaunchedEffect(pagerState.settledPage) {
+        val newTab = indexToTab(pagerState.settledPage)
         if (state.activeTab != newTab) {
             viewModel.setActiveTab(newTab)
         }
@@ -294,6 +306,48 @@ fun ResumeBuilderScreen(
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
                         )
 
+                        // Divider
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 6.dp)
+                                .height(1.dp)
+                                .background(MaterialTheme.colorScheme.outlineVariant)
+                        )
+
+                        // Replay Tutorial
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    "Replay Tutorial",
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                showPlayer = true
+                            },
+                            leadingIcon = {
+                                Box(
+                                    modifier = Modifier
+                                        .size(30.dp)
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), RoundedCornerShape(8.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        Icons.Default.PlayCircleOutline,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            },
+                            modifier = Modifier.padding(horizontal = 4.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
+                        )
+
                         Spacer(modifier = Modifier.height(4.dp))
                     }
                 }
@@ -450,6 +504,38 @@ fun ResumeBuilderScreen(
                 }
             )
         }
+    }
+
+    if (showOptInDialog) {
+        com.stutool.stutool.tutorial.TutorialOptInDialog(
+            tutorialType = com.stutool.stutool.tutorial.TutorialType.RESUME_BUILDER,
+            onWatchTutorial = {
+                showOptInDialog = false
+                sessionPromptHandled = true
+                showPlayer = true
+            },
+            onNoThanks = {
+                showOptInDialog = false
+                sessionPromptHandled = true
+                tutorialPrefs.setTutorialDeclined(com.stutool.stutool.tutorial.TutorialType.RESUME_BUILDER, true)
+            },
+            onDismissRequest = {
+                showOptInDialog = false
+                sessionPromptHandled = true
+            }
+        )
+    }
+
+    if (showPlayer) {
+        com.stutool.stutool.tutorial.TutorialPlayerDialog(
+            tutorialType = com.stutool.stutool.tutorial.TutorialType.RESUME_BUILDER,
+            onDismiss = { completedOrDismissedByUser ->
+                if (completedOrDismissedByUser) {
+                    tutorialPrefs.markTutorialSeen(com.stutool.stutool.tutorial.TutorialType.RESUME_BUILDER)
+                }
+                showPlayer = false
+            }
+        )
     }
 }
 
@@ -767,14 +853,18 @@ private fun lerp(start: Color, stop: Color, fraction: Float): Color {
     )
 }
 
+internal fun getResumeTemplateSelectorOptions(): List<Triple<String, String, String>> = listOf(
+    Triple("minimal", "Minimal", "Clean, simple, and traditional. Perfect for passing strict ATS systems."),
+    Triple("modern", "Modern", "Two-column vibrant layout with a splash of color. Great for creatives."),
+    Triple("classic", "Classic", "Professional serif typography designed exclusively for formal and executive roles."),
+    Triple("persona", "Persona", "Multi-column layout featuring a custom professional profile picture."),
+    Triple("career_timeline", "Career Timeline", "Chronological milestone layout for experience, education, and projects."),
+    Triple("executive_slate", "Executive Slate", "Full-width dark slate masthead with a clean single-column executive layout.")
+)
+
 @Composable
 fun TemplateSelector(selectedTemplate: String, onSelect: (String) -> Unit) {
-    val templates = listOf(
-        Triple("minimal", "Minimal", "Clean, simple, and traditional. Perfect for passing strict ATS systems."),
-        Triple("modern", "Modern", "Two-column vibrant layout with a splash of color. Great for creatives."),
-        Triple("classic", "Classic", "Professional serif typography designed exclusively for formal and executive roles."),
-        Triple("persona", "Persona", "Multi-column layout featuring a custom professional profile picture.")
-    )
+    val templates = getResumeTemplateSelectorOptions()
 
     Column(
         modifier = Modifier

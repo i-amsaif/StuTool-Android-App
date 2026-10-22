@@ -41,11 +41,13 @@ fun RenderResume(
                 .fillMaxHeight()
                 .background(Color.White)
         ) {
-            when (template.lowercase()) {
+            when (resolveResumeTemplateKey(template)) {
                 "minimal" -> MinimalTemplate(data = data)
                 "modern" -> ModernTemplate(data = data)
                 "classic" -> ClassicTemplate(data = data)
                 "persona" -> PersonaTemplate(data = data)
+                "career_timeline" -> CareerTimelineTemplate(data = data)
+                "executive_slate" -> ExecutiveSlateTemplate(data = data)
                 else -> MinimalTemplate(data = data)
             }
         }
@@ -59,12 +61,28 @@ fun ResumeTemplateRenderer(
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier.background(Color.White)) {
-        when (template.lowercase()) {
+        when (resolveResumeTemplateKey(template)) {
             "minimal" -> MinimalTemplate(data = data)
             "modern" -> ModernTemplate(data = data)
             "classic" -> ClassicTemplate(data = data)
             "persona" -> PersonaTemplate(data = data)
+            "career_timeline" -> CareerTimelineTemplate(data = data)
+            "executive_slate" -> ExecutiveSlateTemplate(data = data)
             else -> MinimalTemplate(data = data)
         }
     }
 }
+
+internal fun resolveResumeTemplateKey(template: String): String {
+    return when (template.trim().lowercase()) {
+        "minimal" -> "minimal"
+        "modern" -> "modern"
+        "classic" -> "classic"
+        "persona" -> "persona"
+        "career_timeline" -> "career_timeline"
+        "executive_slate" -> "executive_slate"
+        else -> "minimal"
+    }
+}
+
+

@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -61,7 +62,8 @@ fun DrawerContent(
     currentRoute: String? = null,
     onNavigate: (String) -> Unit,
     onThemeToggle: () -> Unit,
-    isDarkMode: Boolean
+    isDarkMode: Boolean,
+    onExitClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -110,7 +112,20 @@ fun DrawerContent(
             // Section 3 — Utility
             DrawerSectionLabel("Utility")
             DrawerMenuItem(DrawerItem("Rate App", Icons.Default.Star), currentRoute) {
-                Toast.makeText(context, "Coming Soon", Toast.LENGTH_SHORT).show()
+                val appPackageName = context.packageName
+                try {
+                    val intent = android.content.Intent(
+                        android.content.Intent.ACTION_VIEW,
+                        android.net.Uri.parse("market://details?id=$appPackageName")
+                    )
+                    context.startActivity(intent)
+                } catch (e: android.content.ActivityNotFoundException) {
+                    val intent = android.content.Intent(
+                        android.content.Intent.ACTION_VIEW,
+                        android.net.Uri.parse("https://play.google.com/store/apps/details?id=$appPackageName")
+                    )
+                    context.startActivity(intent)
+                }
                 scope.launch { drawerState.close() }
             }
             DrawerMenuItem(DrawerItem("Share App", Icons.Default.Share), currentRoute) {
@@ -126,6 +141,10 @@ fun DrawerContent(
             DrawerMenuItem(DrawerItem("Send Feedback", Icons.Default.Email, route = "feedback"), currentRoute) {
                 onNavigate("feedback")
                 scope.launch { drawerState.close() }
+            }
+            DrawerMenuItem(DrawerItem("Exit App", Icons.AutoMirrored.Filled.ExitToApp), currentRoute) {
+                scope.launch { drawerState.close() }
+                onExitClick()
             }
 
             DrawerDivider()

@@ -200,6 +200,43 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
     // Cache for coordinate-aware layout elements
     private val layoutCache = LruCache<Int, PdfPageLayout>(10)
 
+    // Cache for extracted hyperlink annotations per page
+    private val pageLinksCache = LruCache<Int, List<PdfLinkAnnotation>>(32)
+
+    // Cache for page dimensions (width to height) for synchronous aspect ratio restoration
+    private val pageSizeCache = java.util.concurrent.ConcurrentHashMap<Int, Pair<Int, Int>>()
+
+    // Viewer transform state retained across external link navigation / activity recreation
+    private val _viewerScale = MutableStateFlow(1f)
+    val viewerScale: StateFlow<Float> = _viewerScale.asStateFlow()
+
+    private val _viewerOffsetX = MutableStateFlow(0f)
+    val viewerOffsetX: StateFlow<Float> = _viewerOffsetX.asStateFlow()
+
+    private val _viewerOffsetY = MutableStateFlow(0f)
+    val viewerOffsetY: StateFlow<Float> = _viewerOffsetY.asStateFlow()
+
+    private val _continuousScale = MutableStateFlow(1f)
+    val continuousScale: StateFlow<Float> = _continuousScale.asStateFlow()
+
+    private val _continuousOffsetX = MutableStateFlow(0f)
+    val continuousOffsetX: StateFlow<Float> = _continuousOffsetX.asStateFlow()
+
+    private val _continuousOffsetY = MutableStateFlow(0f)
+    val continuousOffsetY: StateFlow<Float> = _continuousOffsetY.asStateFlow()
+
+    fun updateViewerTransform(scale: Float, offsetX: Float, offsetY: Float) {
+        _viewerScale.value = scale
+        _viewerOffsetX.value = offsetX
+        _viewerOffsetY.value = offsetY
+    }
+
+    fun updateContinuousTransform(scale: Float, offsetX: Float, offsetY: Float) {
+        _continuousScale.value = scale
+        _continuousOffsetX.value = offsetX
+        _continuousOffsetY.value = offsetY
+    }
+
     // PdfRenderer is not thread safe
     private val rendererMutex = Mutex()
 
@@ -250,13 +287,15 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
                             // Initialize PDFBox concurrently without blocking the main renderer
                             launch(Dispatchers.IO) {
                                 pdfDocumentMutex.withLock {
-                                    try {
-                                        context.contentResolver.openInputStream(uri)?.use { stream ->
-                                            val memorySetting = com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly()
-                                            activePdfDocument = PDDocument.load(stream, memorySetting)
+                                    if (activePdfDocument == null) {
+                                        try {
+                                            context.contentResolver.openInputStream(uri)?.use { stream ->
+                                                val memorySetting = com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly()
+                                                activePdfDocument = PDDocument.load(stream, memorySetting)
+                                            }
+                                        } catch (e: Exception) {
+                                            e.printStackTrace()
                                         }
-                                    } catch (e: Exception) {
-                                        e.printStackTrace()
                                     }
                                 }
                             }
@@ -274,7 +313,7 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
                             // deletes entries whose temp content:// permission has expired
                             // (e.g. PDFs shared from Chrome).
                             val localCopyPath = if (uri.scheme == "content") {
-                                copyUriToInternalStorage(uri, resolvedName, context)
+                                copyUriToInternalStorage(uri, resolvedName, context, fileSize)
                             } else null
 
                             repository.saveRecentPdf(
@@ -337,20 +376,78 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
      * reopened in future sessions without needing the original URI permission.
      * Returns the absolute file path on success, null otherwise.
      */
-    private fun copyUriToInternalStorage(uri: Uri, displayName: String, context: Context): String? {
+    @androidx.annotation.VisibleForTesting
+    internal fun copyUriToInternalStorage(uri: Uri, displayName: String, context: Context, fileSize: Long = 0L): String? {
         return try {
             val dir = File(context.filesDir, PERSISTENT_COPY_DIR).also { it.mkdirs() }
-            // Sanitise the name for file system safety
-            val safeName = displayName.replace(Regex("[^a-zA-Z0-9._-]"), "_") + ".pdf"
-            val destFile = File(dir, safeName)
-            // Skip re-copy if an identical-named file already exists
-            if (destFile.exists() && destFile.length() > 0L) return destFile.absolutePath
-            context.contentResolver.openInputStream(uri)?.use { input ->
-                BufferedOutputStream(FileOutputStream(destFile)).use { output ->
-                    BufferedInputStream(input).copyTo(output)
+            val cleanBase = displayName.removeSuffix(".pdf").replace(Regex("[^a-zA-Z0-9._-]"), "_")
+            val defaultDest = File(dir, "$cleanBase.pdf")
+
+            // If this exact URI already has a recorded local copy in RecentPdfRepository, reuse it directly
+            val existingEntryForThisUri = repository.getRecentPdfs().find { it.uri == uri.toString() }
+            if (existingEntryForThisUri?.localCopyPath != null) {
+                val existingFile = File(existingEntryForThisUri.localCopyPath)
+                if (existingFile.exists() && existingFile.length() > 0L && (fileSize <= 0L || existingFile.length() == fileSize)) {
+                    return existingFile.absolutePath
                 }
             }
-            if (destFile.exists() && destFile.length() > 0L) destFile.absolutePath else null
+
+            // Check if defaultDest is already claimed by an entry in RecentPdfRepository
+            val defaultClaimant = repository.getRecentPdfs().find {
+                val path = it.localCopyPath
+                path != null && (path == defaultDest.absolutePath || (try { File(path).canonicalPath == defaultDest.canonicalPath } catch (_: Exception) { false }))
+            }
+
+            val targetFile = if (defaultClaimant != null && defaultClaimant.uri != uri.toString()) {
+                // defaultDest is owned by a different document with the same display name.
+                // Allocate an isolated destination for this URI to prevent collision.
+                val uriHash = Math.abs(uri.toString().hashCode()).toString(16)
+                val isolatedDest = File(dir, "${cleanBase}_$uriHash.pdf")
+                if (isolatedDest.exists() && isolatedDest.length() > 0L && (fileSize <= 0L || isolatedDest.length() == fileSize)) {
+                    // Valid existing copy for this distinct URI already exists
+                    return isolatedDest.absolutePath
+                }
+                isolatedDest
+            } else if (defaultDest.exists() && defaultDest.length() > 0L) {
+                if (defaultClaimant?.uri == uri.toString() && (fileSize <= 0L || defaultDest.length() == fileSize)) {
+                    // Valid existing copy for this exact URI
+                    return defaultDest.absolutePath
+                }
+                // If not claimed by this URI (e.g. unindexed/stale leftover), or size changed, we copy into defaultDest
+                defaultDest
+            } else {
+                defaultDest
+            }
+
+            // Perform copy with in-flight registration and atomic temporary staging
+            val targetCanonical = try { targetFile.canonicalPath } catch (_: Exception) { targetFile.absolutePath }
+            RecentPdfRepository.registerInFlightCopy(targetCanonical).use {
+                val tempFile = File(dir, "${targetFile.name}.${System.currentTimeMillis()}.tmp")
+                val tempCanonical = try { tempFile.canonicalPath } catch (_: Exception) { tempFile.absolutePath }
+                RecentPdfRepository.registerInFlightCopy(tempCanonical).use {
+                    try {
+                        context.contentResolver.openInputStream(uri)?.use { input ->
+                            BufferedOutputStream(FileOutputStream(tempFile)).use { output ->
+                                BufferedInputStream(input).copyTo(output)
+                            }
+                        }
+                        if (tempFile.exists() && tempFile.length() > 0L) {
+                            if (targetFile.exists()) {
+                                targetFile.delete()
+                            }
+                            if (!tempFile.renameTo(targetFile)) {
+                                tempFile.copyTo(targetFile, overwrite = true)
+                                tempFile.delete()
+                            }
+                        }
+                    } finally {
+                        if (tempFile.exists()) {
+                            tempFile.delete()
+                        }
+                    }
+                }
+            }
+            if (targetFile.exists() && targetFile.length() > 0L) targetFile.absolutePath else null
         } catch (e: Exception) {
             e.printStackTrace()
             null
@@ -422,7 +519,7 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
                             _pdfName.value = resolvedName
 
                             val localCopyPath = if (uri.scheme == "content") {
-                                copyUriToInternalStorage(uri, resolvedName, context)
+                                copyUriToInternalStorage(uri, resolvedName, context, fileSize)
                             } else null
 
                             repository.saveRecentPdf(
@@ -684,6 +781,73 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    data class PageOcrState(
+        val pageIndex: Int = -1,
+        val isLoading: Boolean = false,
+        val extractedText: String? = null,
+        val errorMessage: String? = null,
+        val engineUsed: String? = null
+    )
+
+    private val _pageOcrState = MutableStateFlow(PageOcrState())
+    val pageOcrState: StateFlow<PageOcrState> = _pageOcrState.asStateFlow()
+
+    private var pageOcrJob: kotlinx.coroutines.Job? = null
+
+    fun extractPageTextWithOcr(
+        pageIndex: Int,
+        language: com.stutool.stutool.domain.ocr.OcrLanguage = com.stutool.stutool.domain.ocr.OcrLanguage.AUTO,
+        mode: com.stutool.stutool.domain.ocr.OcrMode = com.stutool.stutool.domain.ocr.OcrMode.DEFAULT
+    ) {
+        if (_pageOcrState.value.isLoading && _pageOcrState.value.pageIndex == pageIndex) return
+
+        pageOcrJob?.cancel()
+        pageOcrJob = viewModelScope.launch(Dispatchers.IO) {
+            _pageOcrState.value = PageOcrState(pageIndex = pageIndex, isLoading = true)
+            try {
+                val bitmap = getPageBitmap(pageIndex, targetWidth = 1600)
+                    ?: throw Exception("Could not render page image for OCR.")
+
+                coroutineContext.ensureActive()
+
+                val ocrResult = com.stutool.stutool.domain.ocr.OcrEngineService.recognizeBitmap(
+                    context = getApplication(),
+                    bitmap = bitmap,
+                    language = language,
+                    mode = mode
+                )
+
+                coroutineContext.ensureActive()
+
+                val text = ocrResult.text.trim().ifEmpty {
+                    "No text could be recognized on this page."
+                }
+
+                textCache.put(pageIndex, text)
+
+                _pageOcrState.value = PageOcrState(
+                    pageIndex = pageIndex,
+                    isLoading = false,
+                    extractedText = text,
+                    engineUsed = ocrResult.engineSource.displayName
+                )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                // Ignore cancellation
+            } catch (e: Exception) {
+                _pageOcrState.value = PageOcrState(
+                    pageIndex = pageIndex,
+                    isLoading = false,
+                    errorMessage = e.message ?: "Failed to perform OCR on page."
+                )
+            }
+        }
+    }
+
+    fun clearPageOcrState() {
+        pageOcrJob?.cancel()
+        _pageOcrState.value = PageOcrState()
+    }
+
     private var prefetchJob: kotlinx.coroutines.Job? = null
 
     fun preloadTextWindow(currentPage: Int) {
@@ -843,6 +1007,7 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
                 var page: PdfRenderer.Page? = null
                 try {
                     page = renderer.openPage(pageIndex)
+                    pageSizeCache[pageIndex] = page.width to page.height
 
                     val pageRatio = page.width.toFloat() / page.height.toFloat()
                     val safeDims = BitmapSafety.calculateSafeDimensions(targetWidth, pageRatio)
@@ -903,15 +1068,24 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    fun getCachedPageRatio(pageIndex: Int): Float? {
+        val size = pageSizeCache[pageIndex] ?: return null
+        return if (size.second != 0) size.first.toFloat() / size.second.toFloat() else null
+    }
+
     suspend fun getPageSize(pageIndex: Int): Pair<Int, Int>? {
+        pageSizeCache[pageIndex]?.let { return it }
         return withContext(Dispatchers.IO) {
             rendererMutex.withLock {
+                pageSizeCache[pageIndex]?.let { return@withContext it }
                 val renderer = pdfRenderer ?: return@withContext null
                 if (pageIndex < 0 || pageIndex >= renderer.pageCount) return@withContext null
                 var page: PdfRenderer.Page? = null
                 try {
                     page = renderer.openPage(pageIndex)
-                    return@withContext page.width to page.height
+                    val dims = page.width to page.height
+                    pageSizeCache[pageIndex] = dims
+                    return@withContext dims
                 } catch (e: Exception) {
                     null
                 } finally {
@@ -925,7 +1099,43 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    // â”€â”€ Snap a continuous scale to the nearest cached zoom tier â”€â”€
+    suspend fun getPageLinks(pageIndex: Int): List<PdfLinkAnnotation> {
+        pageLinksCache.get(pageIndex)?.let { return it }
+        return withContext(Dispatchers.IO) {
+            pdfDocumentMutex.withLock {
+                pageLinksCache.get(pageIndex)?.let { return@withContext it }
+
+                if (activePdfDocument == null) {
+                    val uri = currentContentUri
+                    if (uri != null) {
+                        try {
+                            getApplication<Application>().contentResolver.openInputStream(uri)?.use { stream ->
+                                val memorySetting = com.tom_roush.pdfbox.io.MemoryUsageSetting.setupTempFileOnly()
+                                activePdfDocument = PDDocument.load(stream, memorySetting)
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+                }
+
+                val doc = activePdfDocument ?: return@withContext emptyList()
+                if (pageIndex < 0 || pageIndex >= doc.numberOfPages) return@withContext emptyList()
+
+                try {
+                    val page = doc.getPage(pageIndex)
+                    val links = PdfHyperlinkSupport.extractPageHyperlinks(page, pageIndex)
+                    pageLinksCache.put(pageIndex, links)
+                    links
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    emptyList()
+                }
+            }
+        }
+    }
+
+    // ── Snap a continuous scale to the nearest cached zoom tier ──
     fun snapToZoomLevel(rawScale: Float): Float {
         return when {
             rawScale <= 1.5f  -> 1.5f
@@ -1026,6 +1236,14 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
             zoomBitmapCache.evictAll()
             textCache.evictAll()
             layoutCache.evictAll()
+            pageLinksCache.evictAll()
+            pageSizeCache.clear()
+            _viewerScale.value = 1f
+            _viewerOffsetX.value = 0f
+            _viewerOffsetY.value = 0f
+            _continuousScale.value = 1f
+            _continuousOffsetX.value = 0f
+            _continuousOffsetY.value = 0f
             _pageCount.value = 0
             _currentPdfUri.value = null
             _displayUri.value = null
@@ -1062,6 +1280,12 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
             kotlinx.coroutines.delay(400) // Debounce
             progressRepository.saveProgress(pdfId, pageIndex)
         }
+    }
+
+    fun flushReadingProgressImmediate(pageIndex: Int) {
+        val pdfId = currentPdfId ?: return
+        saveProgressJob?.cancel()
+        progressRepository.saveProgress(pdfId, pageIndex)
     }
 
     fun toggleBookmark(pageIndex: Int) {

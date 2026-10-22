@@ -65,3 +65,11 @@ google-services.json
 ehthumbs.db
 Thumbs.db
 *.py
+
+# Scratch & temporary development files
+scratch_*.kt
+*.main.kts
+
+# Local screenshots and screen captures
+stutool0/
+stutool_ss/

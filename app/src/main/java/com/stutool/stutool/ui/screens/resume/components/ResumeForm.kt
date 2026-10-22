@@ -425,7 +425,24 @@ fun ResumeForm(
                             DarkFormInput("Degree", "e.g. B.Tech, B.Com", edu.degree) { viewModel.updateEducation(edu.id, "degree", it) }
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 DarkDropdownSelector("Marks Type", listOf("CGPA", "Percentage"), edu.marksType, modifier = Modifier.weight(1f)) { viewModel.updateEducation(edu.id, "marksType", it) }
-                                DarkFormInput("Marks", if (edu.marksType == "Percentage") "e.g. 85%" else "e.g. 9.5", edu.marks, modifier = Modifier.weight(1f)) { viewModel.updateEducation(edu.id, "marks", it) }
+                                DarkFormInput(
+                                    "Marks", 
+                                    if (edu.marksType == "Percentage") "e.g. 85" else "e.g. 9.5", 
+                                    edu.marks, 
+                                    modifier = Modifier.weight(1f),
+                                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
+                                    )
+                                ) { newValue ->
+                                    val filtered = newValue.filter { it.isDigit() || it == '.' }
+                                    val clean = if (filtered.count { it == '.' } > 1) {
+                                        val firstDot = filtered.indexOf('.')
+                                        filtered.substring(0, firstDot + 1) + filtered.substring(firstDot + 1).replace(".", "")
+                                    } else {
+                                        filtered
+                                    }
+                                    viewModel.updateEducation(edu.id, "marks", clean) 
+                                }
                             }
                             DarkFormInput("Additional Details (Optional)", "Coursework, Thesis, etc.", edu.description, singleLine = false, lines = 3) { viewModel.updateEducation(edu.id, "description", it) }
                         }
@@ -577,6 +594,145 @@ fun ResumeForm(
             }
         }
 
+        // Achievements
+        item {
+            var expanded by remember { mutableStateOf(false) }
+            FormSectionCard(
+                title = "Achievements",
+                icon = Icons.Default.EmojiEvents,
+                expanded = expanded,
+                onToggle = { expanded = !expanded },
+                isVisible = data.visibleSections.achievements,
+                onVisibilityToggle = { viewModel.toggleVisibility("achievements") }
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    data.achievements.forEachIndexed { index, ach ->
+                        FormItemCard(
+                            title = "Achievement ${index + 1}",
+                            onDelete = { viewModel.removeAchievement(ach.id) }
+                        ) {
+                            DarkFormInput(
+                                label = "Title / Award",
+                                placeholder = "e.g. Hackathon Finalist, Merit Scholarship",
+                                value = ach.title
+                            ) { viewModel.updateAchievement(ach.id, "title", it) }
+                            DarkFormInput(
+                                label = "Date / Year (Optional)",
+                                placeholder = "e.g. 2025",
+                                value = ach.date
+                            ) { viewModel.updateAchievement(ach.id, "date", it) }
+                            DarkFormInput(
+                                label = "Description (Optional)",
+                                placeholder = "- Recognized among top 5 teams...",
+                                value = ach.description,
+                                singleLine = false,
+                                lines = 3
+                            ) { viewModel.updateAchievement(ach.id, "description", it) }
+                        }
+                    }
+                    AddButton("Add Achievement") { viewModel.addAchievement() }
+                }
+            }
+        }
+
+        // Certifications
+        item {
+            var expanded by remember { mutableStateOf(false) }
+            FormSectionCard(
+                title = "Certifications",
+                icon = Icons.Default.Verified,
+                expanded = expanded,
+                onToggle = { expanded = !expanded },
+                isVisible = data.visibleSections.certifications,
+                onVisibilityToggle = { viewModel.toggleVisibility("certifications") }
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    data.certifications.forEachIndexed { index, cert ->
+                        FormItemCard(
+                            title = "Certification ${index + 1}",
+                            onDelete = { viewModel.removeCertification(cert.id) }
+                        ) {
+                            DarkFormInput(
+                                label = "Certificate Name",
+                                placeholder = "e.g. Cloud Practitioner Essentials",
+                                value = cert.name
+                            ) { viewModel.updateCertification(cert.id, "name", it) }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                DarkFormInput(
+                                    label = "Issuing Organization",
+                                    placeholder = "e.g. AWS, Coursera",
+                                    value = cert.issuer,
+                                    modifier = Modifier.weight(1f)
+                                ) { viewModel.updateCertification(cert.id, "issuer", it) }
+                                DarkFormInput(
+                                    label = "Date / Year",
+                                    placeholder = "e.g. 2025",
+                                    value = cert.date,
+                                    modifier = Modifier.weight(0.6f)
+                                ) { viewModel.updateCertification(cert.id, "date", it) }
+                            }
+                            DarkFormInput(
+                                label = "Credential Link / ID (Optional)",
+                                placeholder = "e.g. https://...",
+                                value = cert.link
+                            ) { viewModel.updateCertification(cert.id, "link", it) }
+                        }
+                    }
+                    AddButton("Add Certification") { viewModel.addCertification() }
+                }
+            }
+        }
+
+        // Extracurricular Activities
+        item {
+            var expanded by remember { mutableStateOf(false) }
+            FormSectionCard(
+                title = "Extracurricular Activities",
+                icon = Icons.Default.Groups,
+                expanded = expanded,
+                onToggle = { expanded = !expanded },
+                isVisible = data.visibleSections.extracurriculars,
+                onVisibilityToggle = { viewModel.toggleVisibility("extracurriculars") }
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    data.extracurriculars.forEachIndexed { index, extra ->
+                        FormItemCard(
+                            title = "Activity ${index + 1}",
+                            onDelete = { viewModel.removeExtracurricular(extra.id) }
+                        ) {
+                            DarkFormInput(
+                                label = "Role / Activity Title",
+                                placeholder = "e.g. Student Coordinator, Volunteer",
+                                value = extra.title
+                            ) { viewModel.updateExtracurricular(extra.id, "title", it) }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                DarkFormInput(
+                                    label = "Organization / Event",
+                                    placeholder = "e.g. Coding Club, NSS",
+                                    value = extra.organization,
+                                    modifier = Modifier.weight(1f)
+                                ) { viewModel.updateExtracurricular(extra.id, "organization", it) }
+                                DarkFormInput(
+                                    label = "Date / Duration",
+                                    placeholder = "e.g. 2024 — 2026",
+                                    value = extra.date,
+                                    modifier = Modifier.weight(0.6f)
+                                ) { viewModel.updateExtracurricular(extra.id, "date", it) }
+                            }
+                            DarkFormInput(
+                                label = "Description (Optional)",
+                                placeholder = "- Organized coding workshops...",
+                                value = extra.description,
+                                singleLine = false,
+                                lines = 3
+                            ) { viewModel.updateExtracurricular(extra.id, "description", it) }
+                        }
+                    }
+                    AddButton("Add Activity") { viewModel.addExtracurricular() }
+                }
+            }
+        }
+
         // Declaration
         item {
             var expanded by remember { mutableStateOf(false) }
@@ -720,6 +876,7 @@ private fun DarkFormInput(
     modifier: Modifier = Modifier,
     singleLine: Boolean = true,
     lines: Int = 1,
+    keyboardOptions: androidx.compose.foundation.text.KeyboardOptions = androidx.compose.foundation.text.KeyboardOptions.Default,
     onValueChange: (String) -> Unit
 ) {
     Column(modifier = modifier) {
@@ -739,6 +896,7 @@ private fun DarkFormInput(
             singleLine = singleLine,
             minLines = if (singleLine) 1 else lines,
             maxLines = if (singleLine) 1 else 10,
+            keyboardOptions = keyboardOptions,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = MaterialTheme.colorScheme.onBackground,
                 unfocusedTextColor = MaterialTheme.colorScheme.onBackground,

@@ -161,6 +161,9 @@ object PdfShareUtils {
     internal fun sanitizeFilename(name: String): String {
         // Replace any character that is not alphanumeric, dot, hyphen, or space with underscore
         var safeName = name.replace(Regex("[^a-zA-Z0-9.\\-_ ]"), "_")
+        while (safeName.contains("..")) {
+            safeName = safeName.replace("..", "_")
+        }
         if (safeName.isBlank()) safeName = "Document"
         if (!safeName.lowercase().endsWith(".pdf")) {
             safeName += ".pdf"

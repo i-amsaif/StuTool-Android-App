@@ -453,6 +453,107 @@ class ResumeViewModel(application: Application) : AndroidViewModel(application) 
         scheduleSave()
     }
 
+    fun addAchievement() {
+        _uiState.update { state ->
+            val list = state.resumeData.achievements.toMutableList()
+            list.add(Achievement())
+            state.copy(resumeData = state.resumeData.copy(achievements = list))
+        }
+        scheduleSave()
+    }
+
+    fun updateAchievement(id: String, field: String, value: String) {
+        _uiState.update { state ->
+            val list = state.resumeData.achievements.map {
+                if (it.id == id) {
+                    when (field) {
+                        "title" -> it.copy(title = formatName(value))
+                        "date" -> it.copy(date = value)
+                        "description" -> it.copy(description = formatSentence(value))
+                        else -> it
+                    }
+                } else it
+            }
+            state.copy(resumeData = state.resumeData.copy(achievements = list))
+        }
+        scheduleSave()
+    }
+
+    fun removeAchievement(id: String) {
+        _uiState.update { state ->
+            state.copy(resumeData = state.resumeData.copy(achievements = state.resumeData.achievements.filter { it.id != id }))
+        }
+        scheduleSave()
+    }
+
+    fun addCertification() {
+        _uiState.update { state ->
+            val list = state.resumeData.certifications.toMutableList()
+            list.add(Certification())
+            state.copy(resumeData = state.resumeData.copy(certifications = list))
+        }
+        scheduleSave()
+    }
+
+    fun updateCertification(id: String, field: String, value: String) {
+        _uiState.update { state ->
+            val list = state.resumeData.certifications.map {
+                if (it.id == id) {
+                    when (field) {
+                        "name" -> it.copy(name = formatName(value))
+                        "issuer" -> it.copy(issuer = formatName(value))
+                        "date" -> it.copy(date = value)
+                        "link" -> it.copy(link = value)
+                        else -> it
+                    }
+                } else it
+            }
+            state.copy(resumeData = state.resumeData.copy(certifications = list))
+        }
+        scheduleSave()
+    }
+
+    fun removeCertification(id: String) {
+        _uiState.update { state ->
+            state.copy(resumeData = state.resumeData.copy(certifications = state.resumeData.certifications.filter { it.id != id }))
+        }
+        scheduleSave()
+    }
+
+    fun addExtracurricular() {
+        _uiState.update { state ->
+            val list = state.resumeData.extracurriculars.toMutableList()
+            list.add(Extracurricular())
+            state.copy(resumeData = state.resumeData.copy(extracurriculars = list))
+        }
+        scheduleSave()
+    }
+
+    fun updateExtracurricular(id: String, field: String, value: String) {
+        _uiState.update { state ->
+            val list = state.resumeData.extracurriculars.map {
+                if (it.id == id) {
+                    when (field) {
+                        "title" -> it.copy(title = formatName(value))
+                        "organization" -> it.copy(organization = formatName(value))
+                        "date" -> it.copy(date = value)
+                        "description" -> it.copy(description = formatSentence(value))
+                        else -> it
+                    }
+                } else it
+            }
+            state.copy(resumeData = state.resumeData.copy(extracurriculars = list))
+        }
+        scheduleSave()
+    }
+
+    fun removeExtracurricular(id: String) {
+        _uiState.update { state ->
+            state.copy(resumeData = state.resumeData.copy(extracurriculars = state.resumeData.extracurriculars.filter { it.id != id }))
+        }
+        scheduleSave()
+    }
+
     fun toggleVisibility(section: String) {
         _uiState.update { state ->
             val vs = state.resumeData.visibleSections
@@ -461,6 +562,9 @@ class ResumeViewModel(application: Application) : AndroidViewModel(application) 
                 "education" -> vs.copy(education = !vs.education)
                 "projects" -> vs.copy(projects = !vs.projects)
                 "skills" -> vs.copy(skills = !vs.skills)
+                "achievements" -> vs.copy(achievements = !vs.achievements)
+                "certifications" -> vs.copy(certifications = !vs.certifications)
+                "extracurriculars" -> vs.copy(extracurriculars = !vs.extracurriculars)
                 "declaration" -> vs.copy(declaration = !vs.declaration)
                 else -> vs
             }

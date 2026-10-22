@@ -240,7 +240,7 @@ fun EdgeCropScreen(
 
                         if (result != null) {
                             // PIPELINE: detect -> sanitize -> validate -> commit
-                            val safeInsetRatio = 0.02f // 2% inset — reduced for near-edge cropping while preserving handle accessibility
+                            val safeInsetRatio = 0.0f // 2% inset — reduced for near-edge cropping while preserving handle accessibility
                             val insetW = imageWidth * safeInsetRatio
                             val insetH = imageHeight * safeInsetRatio
                             

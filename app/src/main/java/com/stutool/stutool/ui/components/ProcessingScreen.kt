@@ -52,6 +52,23 @@ sealed class ProcessingState {
     data object Cancelled : ProcessingState()
 }
 
+private enum class ProcessingPhase {
+    IDLE,
+    IN_PROGRESS,
+    SUCCESS,
+    ERROR,
+    CANCELLED
+}
+
+private fun ProcessingState.toPhase(): ProcessingPhase = when (this) {
+    is ProcessingState.Idle -> ProcessingPhase.IDLE
+    is ProcessingState.Preparing,
+    is ProcessingState.Processing -> ProcessingPhase.IN_PROGRESS
+    is ProcessingState.Success -> ProcessingPhase.SUCCESS
+    is ProcessingState.Error -> ProcessingPhase.ERROR
+    is ProcessingState.Cancelled -> ProcessingPhase.CANCELLED
+}
+
 @Composable
 fun FullScreenProcessingView(
     state: ProcessingState,
@@ -76,64 +93,70 @@ fun FullScreenProcessingView(
             .background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
-        // Crossfade is lighter than AnimatedContent: it does not measure
-        // both old and new content simultaneously, avoiding size flicker.
+        // Crossfade switches only on major phase changes (e.g. In-Progress -> Success/Error)
+        // rather than every progress tick or status message change.
+        // This prevents violent screen flashing and recomposition thrashing on rapid multi-page progress.
         Crossfade(
-            targetState = state,
+            targetState = state.toPhase(),
             animationSpec = tween(350, easing = FastOutSlowInEasing),
             modifier = Modifier.fillMaxSize(),
-            label = "ProcessingStateCrossfade"
-        ) { currentState ->
-            // Each branch fills the entire Box so layout never shifts.
+            label = "ProcessingPhaseCrossfade"
+        ) { phase ->
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                when (currentState) {
-                    is ProcessingState.Idle -> {
+                when (phase) {
+                    ProcessingPhase.IDLE -> {
                         // Invisible placeholder — keeps container stable.
                     }
-                    is ProcessingState.Preparing -> {
+                    ProcessingPhase.IN_PROGRESS -> {
+                        val currentProgress = when (val s = state) {
+                            is ProcessingState.Processing -> s.progress
+                            else -> -1f
+                        }
+                        val currentMessage = when (val s = state) {
+                            is ProcessingState.Preparing -> s.message
+                            is ProcessingState.Processing -> s.message
+                            else -> "Processing..."
+                        }
+                        val currentSubtitle = when (val s = state) {
+                            is ProcessingState.Processing -> s.subtitle
+                            else -> null
+                        }
                         ProcessingStatusView(
-                            progress = 0f,
-                            isIndeterminate = true,
-                            message = currentState.message,
-                            subtitle = null,
+                            progress = currentProgress,
+                            isIndeterminate = currentProgress < 0f,
+                            message = currentMessage,
+                            subtitle = currentSubtitle,
                             onCancel = onCancel
                         )
                     }
-                    is ProcessingState.Processing -> {
-                        ProcessingStatusView(
-                            progress = currentState.progress,
-                            isIndeterminate = currentState.progress < 0f,
-                            message = currentState.message,
-                            subtitle = currentState.subtitle,
-                            onCancel = onCancel
-                        )
-                    }
-                    is ProcessingState.Success -> {
+                    ProcessingPhase.SUCCESS -> {
+                        val successState = state as? ProcessingState.Success ?: ProcessingState.Success()
                         SuccessStatusView(
-                            title = currentState.title,
-                            subtitle = currentState.subtitle,
-                            primaryActionLabel = currentState.primaryActionLabel,
-                            secondaryActionLabel = currentState.secondaryActionLabel,
-                            tertiaryActionLabel = currentState.tertiaryActionLabel,
+                            title = successState.title,
+                            subtitle = successState.subtitle,
+                            primaryActionLabel = successState.primaryActionLabel,
+                            secondaryActionLabel = successState.secondaryActionLabel,
+                            tertiaryActionLabel = successState.tertiaryActionLabel,
                             onPrimaryAction = onSuccessPrimaryAction,
                             onSecondaryAction = onSuccessSecondaryAction,
                             onTertiaryAction = onSuccessTertiaryAction
                         )
                     }
-                    is ProcessingState.Error -> {
+                    ProcessingPhase.ERROR -> {
+                        val errorState = state as? ProcessingState.Error ?: ProcessingState.Error()
                         ErrorStatusView(
-                            title = currentState.title,
-                            message = currentState.message,
-                            retryLabel = currentState.retryLabel,
-                            cancelLabel = currentState.cancelLabel,
+                            title = errorState.title,
+                            message = errorState.message,
+                            retryLabel = errorState.retryLabel,
+                            cancelLabel = errorState.cancelLabel,
                             onRetry = onErrorRetry,
                             onCancel = onErrorCancel
                         )
                     }
-                    is ProcessingState.Cancelled -> {
+                    ProcessingPhase.CANCELLED -> {
                         ErrorStatusView(
                             title = "Cancelled",
                             message = "The operation was cancelled.",
@@ -290,7 +313,7 @@ fun AnimatedProgressBar(
     // rather than disconnected jumps.
     val animatedProgress by animateFloatAsState(
         targetValue = progress.coerceIn(0f, 1f),
-        animationSpec = tween(1200, easing = LinearOutSlowInEasing),
+        animationSpec = tween(300, easing = FastOutSlowInEasing),
         label = "progress_anim"
     )
 

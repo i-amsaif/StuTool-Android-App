@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.stutool.stutool.ui.screens.resume.models.ResumeData
+import com.stutool.stutool.ui.screens.resume.utils.PageBreakAwareBlock
 
 @Composable
 fun PersonaTemplate(data: ResumeData) {
@@ -67,35 +68,46 @@ fun PersonaTemplate(data: ResumeData) {
 
                 if (data.careerObjective.isNotBlank()) {
                     PersonaSectionTitle("ABOUT ME")
-                    Text(
-                        text = data.careerObjective,
-                        fontSize = 9.sp,
-                        color = Color.Black.copy(alpha = 0.7f),
-                        fontFamily = primaryFont,
-                        lineHeight = 14.sp
-                    )
-                    Spacer(modifier = Modifier.height(28.dp))
-                }
-
-                if (data.visibleSections.education && data.education.isNotEmpty()) {
-                    PersonaSectionTitle("EDUCATION")
-                    data.education.forEach { edu ->
+                    PageBreakAwareBlock {
                         Text(
-                            text = listOf(edu.degree, edu.level).filter { it.isNotBlank() }.joinToString(" "),
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black,
-                            fontFamily = primaryFont
-                        )
-                        Text(
-                            text = edu.institution,
+                            text = data.careerObjective,
                             fontSize = 9.sp,
                             color = Color.Black.copy(alpha = 0.7f),
                             fontFamily = primaryFont,
-                            modifier = Modifier.padding(bottom = 2.dp)
+                            lineHeight = 14.sp
                         )
+                    }
+                    Spacer(modifier = Modifier.height(28.dp))
+                }
+
+                val validEducation = data.education.filter {
+                    it.institution.isNotBlank() || it.level.isNotBlank() || it.degree.isNotBlank()
+                }
+                if (data.visibleSections.education && validEducation.isNotEmpty()) {
+                    PersonaSectionTitle("EDUCATION")
+                    validEducation.forEach { edu ->
+                        com.stutool.stutool.ui.screens.resume.utils.PageBreakAwareBlock { androidx.compose.foundation.layout.Column {
+                        val eduHeading = listOf(edu.degree, edu.level).filter { it.isNotBlank() }.joinToString(" ")
+                        if (eduHeading.isNotBlank()) {
+                            Text(
+                                text = eduHeading,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Black,
+                                fontFamily = primaryFont
+                            )
+                        }
+                        if (edu.institution.isNotBlank()) {
+                            Text(
+                                text = edu.institution,
+                                fontSize = 9.sp,
+                                color = Color.Black.copy(alpha = 0.7f),
+                                fontFamily = primaryFont,
+                                modifier = Modifier.padding(bottom = 2.dp)
+                            )
+                        }
                         if (edu.year.isNotBlank() || edu.marks.isNotBlank()) {
-                            val dtinfo = listOf(edu.year, edu.marks).filter{it.isNotBlank()}.joinToString(" | ")
+                            val dtinfo = listOf(edu.year, edu.displayMarks).filter { it.isNotBlank() }.joinToString(" | ")
                             Text(
                                 text = dtinfo,
                                 fontSize = 8.sp,
@@ -104,13 +116,16 @@ fun PersonaTemplate(data: ResumeData) {
                             )
                         }
                         Spacer(modifier = Modifier.height(12.dp))
+                        } }
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
-                if (data.visibleSections.skills && data.skills.isNotEmpty()) {
+                val validSkills = data.skills.map { it.trim() }.filter { it.isNotBlank() }
+                if (data.visibleSections.skills && validSkills.isNotEmpty()) {
                     PersonaSectionTitle("SKILLS")
-                    data.skills.forEach { skill ->
+                    validSkills.forEach { skill ->
+                        com.stutool.stutool.ui.screens.resume.utils.PageBreakAwareBlock { androidx.compose.foundation.layout.Column {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 8.dp)) {
                             Text(
                                 text = skill,
@@ -123,6 +138,7 @@ fun PersonaTemplate(data: ResumeData) {
                                 Box(modifier = Modifier.fillMaxWidth(0.9f).fillMaxHeight().background(Color.Black))
                             }
                         }
+                        } }
                     }
                     Spacer(modifier = Modifier.height(20.dp))
                 }
@@ -130,11 +146,15 @@ fun PersonaTemplate(data: ResumeData) {
                 if (data.personal.languages.isNotBlank()) {
                     PersonaSectionTitle("LANGUAGE")
                     val langs = data.personal.languages.split(",").map{it.trim()}.filter{it.isNotBlank()}
-                    langs.forEach { lang ->
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 6.dp)) {
-                            Box(modifier = Modifier.size(3.dp).background(Color.Black, CircleShape))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(text = lang, fontSize = 9.sp, color = Color.Black.copy(alpha = 0.8f))
+                    PageBreakAwareBlock {
+                        Column {
+                            langs.forEach { lang ->
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 6.dp)) {
+                                    Box(modifier = Modifier.size(3.dp).background(Color.Black, CircleShape))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(text = lang, fontSize = 9.sp, color = Color.Black.copy(alpha = 0.8f))
+                                }
+                            }
                         }
                     }
                 }
@@ -145,7 +165,8 @@ fun PersonaTemplate(data: ResumeData) {
                 modifier = Modifier
                     .weight(0.65f)
                     .fillMaxHeight()
-                    .padding(horizontal = 32.dp)
+                    .padding(horizontal = 32.dp, vertical = 0.dp)
+                    .padding(bottom = 24.dp)
             ) {
                 Spacer(modifier = Modifier.height(180.dp))
 
@@ -181,18 +202,22 @@ fun PersonaTemplate(data: ResumeData) {
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
-                if (data.visibleSections.experience && data.experience.isNotEmpty()) {
+                val validExperience = data.experience.filter {
+                    it.company.isNotBlank() || it.position.isNotBlank() || it.description.isNotBlank()
+                }
+                if (data.visibleSections.experience && validExperience.isNotEmpty()) {
                     PersonaSectionTitle("EXPERIENCE")
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     
-                    data.experience.forEachIndexed { index, exp ->
+                    validExperience.forEachIndexed { index, exp ->
+                        com.stutool.stutool.ui.screens.resume.utils.PageBreakAwareBlock { androidx.compose.foundation.layout.Column {
                         Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
                             // Dot & Line Timeline
                             Box(modifier = Modifier.width(20.dp).fillMaxHeight()) {
                                 Canvas(modifier = Modifier.fillMaxSize().padding(horizontal = 9.dp)) {
-                                    if (index < data.experience.size - 1) {
+                                    if (index < validExperience.size - 1) {
                                         drawLine(
                                             color = Color.Black.copy(alpha = 0.5f),
                                             start = Offset(1.dp.toPx(), 4.dp.toPx()),
@@ -217,46 +242,274 @@ fun PersonaTemplate(data: ResumeData) {
                             }
                             
                             // Experience Content
-                            Column(modifier = Modifier.weight(1f).padding(bottom = 20.dp)) {
+                            Column(modifier = Modifier.weight(1f).padding(bottom = 16.dp)) {
+                                val dateStr = listOf(exp.startDate, exp.endDate).filter { it.isNotBlank() }.joinToString(" - ")
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                     Text(
-                                        text = exp.position,
+                                        text = exp.position.ifBlank { exp.company },
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color.Black
+                                        color = Color.Black,
+                                        modifier = Modifier.weight(1f).padding(end = 8.dp)
                                     )
-                                    Text(
-                                        text = "${exp.startDate} - ${exp.endDate}",
-                                        fontSize = 9.sp,
-                                        color = Color.Black.copy(alpha = 0.6f),
-                                    )
-                                }
-                                Text(
-                                    text = exp.company,
-                                    fontSize = 10.sp,
-                                    color = Color.Black.copy(alpha = 0.8f),
-                                    modifier = Modifier.padding(top = 2.dp, bottom = 4.dp)
-                                )
-                                if (exp.description.isNotBlank()) {
-                                    // Bullet formatting
-                                    val lines = exp.description.split("\n").filter { it.isNotBlank() }
-                                    for (line in lines) {
+                                    if (dateStr.isNotBlank()) {
                                         Text(
-                                            text = "• " + line.trim().removePrefix("•").removePrefix("-").trim(),
+                                            text = dateStr,
                                             fontSize = 9.sp,
                                             color = Color.Black.copy(alpha = 0.6f),
-                                            lineHeight = 13.sp
                                         )
                                     }
+                                }
+                                if (exp.position.isNotBlank() && exp.company.isNotBlank()) {
+                                    Text(
+                                        text = exp.company,
+                                        fontSize = 10.sp,
+                                        color = Color.Black.copy(alpha = 0.8f),
+                                        modifier = Modifier.padding(top = 2.dp, bottom = 4.dp)
+                                    )
+                                }
+                                if (exp.description.isNotBlank()) {
+                                    PersonaBulletList(exp.description)
+                                }
+                            }
+                        }
+                        } }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                // --- Projects ---
+                val validProjects = data.projects.filter {
+                    it.name.isNotBlank() || it.description.isNotBlank() || it.links.any { l -> l.isNotBlank() }
+                }
+                if (data.visibleSections.projects && validProjects.isNotEmpty()) {
+                    PersonaSectionTitle("PROJECTS")
+                    validProjects.forEach { proj ->
+                        PageBreakAwareBlock {
+                            Column(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+                                if (proj.name.isNotBlank()) {
+                                    Text(
+                                        text = proj.name,
+                                        fontSize = 10.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.Black,
+                                        fontFamily = primaryFont
+                                    )
+                                }
+                                val validLinks = proj.links
+                                    .map { it.trim().removePrefix("https://").removePrefix("http://").removePrefix("www.") }
+                                    .filter { it.isNotBlank() }
+                                if (validLinks.isNotEmpty()) {
+                                    Text(
+                                        text = validLinks.joinToString(" | "),
+                                        fontSize = 8.5.sp,
+                                        color = Color.Black.copy(alpha = 0.65f),
+                                        fontFamily = primaryFont,
+                                        modifier = Modifier.padding(top = 1.dp, bottom = 2.dp)
+                                    )
+                                }
+                                if (proj.description.isNotBlank()) {
+                                    PersonaBulletList(proj.description)
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                // --- Certifications ---
+                val validCertifications = data.certifications.filter { it.name.isNotBlank() || it.issuer.isNotBlank() }
+                if (data.visibleSections.certifications && validCertifications.isNotEmpty()) {
+                    PersonaSectionTitle("CERTIFICATIONS")
+                    validCertifications.forEach { cert ->
+                        PageBreakAwareBlock {
+                            Column(modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = cert.name.ifBlank { cert.issuer },
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.Black,
+                                        fontFamily = primaryFont,
+                                        modifier = Modifier.weight(1f).padding(end = 8.dp)
+                                    )
+                                    if (cert.date.isNotBlank()) {
+                                        Text(
+                                            text = cert.date,
+                                            fontSize = 8.5.sp,
+                                            color = Color.Black.copy(alpha = 0.6f),
+                                            fontFamily = primaryFont
+                                        )
+                                    }
+                                }
+                                val subParts = mutableListOf<String>()
+                                if (cert.name.isNotBlank() && cert.issuer.isNotBlank()) subParts.add(cert.issuer)
+                                val cleanLink = cert.link.trim().removePrefix("https://").removePrefix("http://").removePrefix("www.")
+                                if (cleanLink.isNotBlank()) subParts.add(cleanLink)
+                                if (subParts.isNotEmpty()) {
+                                    Text(
+                                        text = subParts.joinToString(" | "),
+                                        fontSize = 9.sp,
+                                        color = Color.Black.copy(alpha = 0.7f),
+                                        fontFamily = primaryFont,
+                                        modifier = Modifier.padding(top = 1.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                // --- Achievements ---
+                val validAchievements = data.achievements.filter { it.title.isNotBlank() || it.description.isNotBlank() }
+                if (data.visibleSections.achievements && validAchievements.isNotEmpty()) {
+                    PersonaSectionTitle("ACHIEVEMENTS")
+                    validAchievements.forEach { ach ->
+                        PageBreakAwareBlock {
+                            Column(modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
+                                if (ach.title.isNotBlank() || ach.date.isNotBlank()) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        if (ach.title.isNotBlank()) {
+                                            Text(
+                                                text = ach.title,
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.Black,
+                                                fontFamily = primaryFont,
+                                                modifier = Modifier.weight(1f).padding(end = 8.dp)
+                                            )
+                                        } else {
+                                            Spacer(modifier = Modifier.weight(1f))
+                                        }
+                                        if (ach.date.isNotBlank()) {
+                                            Text(
+                                                text = ach.date,
+                                                fontSize = 8.5.sp,
+                                                color = Color.Black.copy(alpha = 0.6f),
+                                                fontFamily = primaryFont
+                                            )
+                                        }
+                                    }
+                                }
+                                if (ach.description.isNotBlank()) {
+                                    PersonaBulletList(ach.description)
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                // --- Extracurricular Activities ---
+                val validExtracurriculars = data.extracurriculars.filter {
+                    it.title.isNotBlank() || it.organization.isNotBlank() || it.description.isNotBlank()
+                }
+                if (data.visibleSections.extracurriculars && validExtracurriculars.isNotEmpty()) {
+                    PersonaSectionTitle("EXTRACURRICULAR ACTIVITIES")
+                    validExtracurriculars.forEach { extra ->
+                        PageBreakAwareBlock {
+                            Column(modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
+                                if (extra.title.isNotBlank() || extra.organization.isNotBlank() || extra.date.isNotBlank()) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        val primary = extra.title.ifBlank { extra.organization }
+                                        if (primary.isNotBlank()) {
+                                            Text(
+                                                text = primary,
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.Black,
+                                                fontFamily = primaryFont,
+                                                modifier = Modifier.weight(1f).padding(end = 8.dp)
+                                            )
+                                        } else {
+                                            Spacer(modifier = Modifier.weight(1f))
+                                        }
+                                        if (extra.date.isNotBlank()) {
+                                            Text(
+                                                text = extra.date,
+                                                fontSize = 8.5.sp,
+                                                color = Color.Black.copy(alpha = 0.6f),
+                                                fontFamily = primaryFont
+                                            )
+                                        }
+                                    }
+                                }
+                                if (extra.title.isNotBlank() && extra.organization.isNotBlank()) {
+                                    Text(
+                                        text = extra.organization,
+                                        fontSize = 9.sp,
+                                        color = Color.Black.copy(alpha = 0.75f),
+                                        fontFamily = primaryFont,
+                                        modifier = Modifier.padding(top = 1.dp, bottom = 2.dp)
+                                    )
+                                }
+                                if (extra.description.isNotBlank()) {
+                                    PersonaBulletList(extra.description)
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                // --- Declaration ---
+                if (data.visibleSections.declaration && data.declaration.enabled) {
+                    PersonaSectionTitle("DECLARATION")
+                    PageBreakAwareBlock {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                text = "I hereby declare that all the information provided is true and correct to the best of my knowledge.",
+                                fontSize = 9.sp,
+                                color = Color.Black.copy(alpha = 0.7f),
+                                fontFamily = primaryFont,
+                                lineHeight = 13.sp
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column {
+                                    if (data.declaration.place.isNotBlank()) {
+                                        Text(
+                                            text = "Place: ${data.declaration.place}",
+                                            fontSize = 8.5.sp,
+                                            color = Color.Black.copy(alpha = 0.65f),
+                                            fontFamily = primaryFont
+                                        )
+                                    }
+                                    if (data.declaration.date.isNotBlank()) {
+                                        Text(
+                                            text = "Date: ${data.declaration.date}",
+                                            fontSize = 8.5.sp,
+                                            color = Color.Black.copy(alpha = 0.65f),
+                                            fontFamily = primaryFont
+                                        )
+                                    }
+                                }
+                                if (data.personal.name.isNotBlank()) {
+                                    Text(
+                                        text = "(${data.personal.name})",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.Black,
+                                        fontFamily = primaryFont,
+                                        modifier = Modifier.align(Alignment.Bottom)
+                                    )
                                 }
                             }
                         }
                     }
                 }
-                
-                Spacer(modifier = Modifier.height(24.dp))
-                
-
             }
         }
 
@@ -272,7 +525,11 @@ fun PersonaTemplate(data: ResumeData) {
                         color = Color.White,
                         letterSpacing = 2.sp
                     )
-                    val profession = data.experience.firstOrNull()?.position?.takeIf { it.isNotBlank() } ?: ""
+                    val profession = if (data.visibleSections.experience) {
+                        data.experience.firstOrNull { it.position.isNotBlank() }?.position?.trim() ?: ""
+                    } else {
+                        ""
+                    }
                     if (profession.isNotBlank()) {
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
@@ -330,6 +587,7 @@ fun PersonaTemplate(data: ResumeData) {
 
 @Composable
 private fun PersonaSectionTitle(title: String) {
+    com.stutool.stutool.ui.screens.resume.utils.PageBreakAwareBlock(isHeader = true) {
     Column(modifier = Modifier.padding(bottom = 12.dp)) {
         Text(
             text = title,
@@ -343,5 +601,25 @@ private fun PersonaSectionTitle(title: String) {
             modifier = Modifier.fillMaxWidth().height(1.dp),
             color = Color.Black.copy(alpha = 0.2f)
         )
+    }
+    }
+}
+
+@Composable
+private fun PersonaBulletList(description: String) {
+    val lines = description.split("\n").filter { it.isNotBlank() }
+    Column(modifier = Modifier.padding(top = 2.dp)) {
+        for (line in lines) {
+            val cleanLine = line.trim().removePrefix("•").removePrefix("-").removePrefix("*").trim()
+            if (cleanLine.isNotBlank()) {
+                Text(
+                    text = "• $cleanLine",
+                    fontSize = 9.sp,
+                    color = Color.Black.copy(alpha = 0.65f),
+                    lineHeight = 13.sp,
+                    fontFamily = FontFamily.SansSerif
+                )
+            }
+        }
     }
 }

@@ -1,0 +1,433 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:drawable="@drawable/ic_logo_splash_vector">
+
+    <!-- ══════════════════════════════════════════════════════
+         STEP 1 → 2: THE SLASH ACTION (180ms – 400ms)
+         Scale the slash group from 0.0 → 1.0, fade in slash paths.
+         ══════════════════════════════════════════════════════ -->
+
+    <!-- Slash group: scaleX and scaleY 0.0 → 1.0 -->
+    <target android:name="grp_slash">
+        <aapt:attr name="android:animation">
+            <set android:ordering="together">
+                <objectAnimator
+                    android:propertyName="scaleX"
+                    android:valueFrom="0.0"
+                    android:valueTo="1.0"
+                    android:valueType="floatType"
+                    android:startOffset="180"
+                    android:duration="220"
+                    android:interpolator="@android:interpolator/accelerate_decelerate" />
+                <objectAnimator
+                    android:propertyName="scaleY"
+                    android:valueFrom="0.0"
+                    android:valueTo="1.0"
+                    android:valueType="floatType"
+                    android:startOffset="180"
+                    android:duration="220"
+                    android:interpolator="@android:interpolator/accelerate_decelerate" />
+            </set>
+        </aapt:attr>
+    </target>
+
+    <!-- Slash paths: fillAlpha 0.0 → 1.0 -->
+    <target android:name="sl_outline">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:valueFrom="0.0"
+                android:valueTo="1.0"
+                android:valueType="floatType"
+                android:startOffset="180"
+                android:duration="220"
+                android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="sl_dark">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:valueFrom="0.0"
+                android:valueTo="1.0"
+                android:valueType="floatType"
+                android:startOffset="180"
+                android:duration="220"
+                android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="sl_bright">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:valueFrom="0.0"
+                android:valueTo="1.0"
+                android:valueType="floatType"
+                android:startOffset="180"
+                android:duration="220"
+                android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="sl_core">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:valueFrom="0.0"
+                android:valueTo="0.75"
+                android:valueType="floatType"
+                android:startOffset="180"
+                android:duration="220"
+                android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+
+    <!-- ══════════════════════════════════════════════════════
+         STEP 2 → 3: INTACT DOCUMENT FADES OUT (300ms – 500ms)
+         All intact paths: fillAlpha 1.0 → 0.0
+         ══════════════════════════════════════════════════════ -->
+
+    <target android:name="i_outline">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="1.0" android:valueTo="0.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_linear_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="i_crease">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="1.0" android:valueTo="0.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_linear_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="i_rim">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="1.0" android:valueTo="0.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_linear_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="i_surface">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="1.0" android:valueTo="0.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_linear_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="i_highlight">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="1.0" android:valueTo="0.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_linear_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="i_band_mid">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="1.0" android:valueTo="0.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_linear_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="i_band_deep">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="1.0" android:valueTo="0.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_linear_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="i_fold_rim">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="1.0" android:valueTo="0.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_linear_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="i_fold_surface">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="1.0" android:valueTo="0.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_linear_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="i_btl_s">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="1.0" android:valueTo="0.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_linear_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="i_btl">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="1.0" android:valueTo="0.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_linear_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="i_btr_s">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="1.0" android:valueTo="0.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_linear_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="i_btr">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="1.0" android:valueTo="0.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_linear_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="i_bbl_s">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="1.0" android:valueTo="0.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_linear_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="i_bbl">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="1.0" android:valueTo="0.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_linear_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="i_bbr_s">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="1.0" android:valueTo="0.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_linear_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="i_bbr">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="1.0" android:valueTo="0.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_linear_in" />
+        </aapt:attr>
+    </target>
+
+    <!-- ══════════════════════════════════════════════════════
+         STEP 3: TOP-LEFT HALF APPEARS & SLIDES (300ms – 800ms)
+         Group: translateX 22.0 → 0.0, translateY -22.0 → 0.0
+         Paths: fillAlpha 0.0 → 1.0
+         ══════════════════════════════════════════════════════ -->
+
+    <target android:name="grp_top_left">
+        <aapt:attr name="android:animation">
+            <set android:ordering="together">
+                <objectAnimator
+                    android:propertyName="translateX"
+                    android:valueFrom="22.0"
+                    android:valueTo="0.0"
+                    android:valueType="floatType"
+                    android:startOffset="300"
+                    android:duration="500"
+                    android:interpolator="@android:interpolator/fast_out_slow_in" />
+                <objectAnimator
+                    android:propertyName="translateY"
+                    android:valueFrom="-22.0"
+                    android:valueTo="0.0"
+                    android:valueType="floatType"
+                    android:startOffset="300"
+                    android:duration="500"
+                    android:interpolator="@android:interpolator/fast_out_slow_in" />
+            </set>
+        </aapt:attr>
+    </target>
+
+    <!-- TL paths fade in (300–500ms) -->
+    <target android:name="tl_outline">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.0" android:valueTo="1.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="tl_rim">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.0" android:valueTo="1.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="tl_surface">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.0" android:valueTo="1.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="tl_highlight">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.0" android:valueTo="1.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="tl_shadow_mid">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.0" android:valueTo="1.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="tl_shadow_deep">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.0" android:valueTo="1.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="tl_btl_s">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.0" android:valueTo="1.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="tl_btl">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.0" android:valueTo="1.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="tl_btr_s">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.0" android:valueTo="1.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="tl_btr">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.0" android:valueTo="1.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="tl_btr_bvl">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.0" android:valueTo="1.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="tl_bbl_s">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.0" android:valueTo="1.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="tl_bbl">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.0" android:valueTo="1.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="tl_bbl_bvl">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.0" android:valueTo="1.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="tl_fold_rim">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.0" android:valueTo="1.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="tl_fold_srf">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.0" android:valueTo="1.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+
+    <!-- ══════════════════════════════════════════════════════
+         STEP 3: BOTTOM-RIGHT HALF APPEARS & SLIDES (300ms – 800ms)
+         Group: translateX -22.0 → 0.0, translateY 22.0 → 0.0
+         Paths: fillAlpha 0.0 → 1.0
+         ══════════════════════════════════════════════════════ -->
+
+    <target android:name="grp_bottom_right">
+        <aapt:attr name="android:animation">
+            <set android:ordering="together">
+                <objectAnimator
+                    android:propertyName="translateX"
+                    android:valueFrom="-22.0"
+                    android:valueTo="0.0"
+                    android:valueType="floatType"
+                    android:startOffset="300"
+                    android:duration="500"
+                    android:interpolator="@android:interpolator/fast_out_slow_in" />
+                <objectAnimator
+                    android:propertyName="translateY"
+                    android:valueFrom="22.0"
+                    android:valueTo="0.0"
+                    android:valueType="floatType"
+                    android:startOffset="300"
+                    android:duration="500"
+                    android:interpolator="@android:interpolator/fast_out_slow_in" />
+            </set>
+        </aapt:attr>
+    </target>
+
+    <!-- BR paths fade in (300–500ms) -->
+    <target android:name="br_outline">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.0" android:valueTo="1.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="br_rim">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.0" android:valueTo="1.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="br_surface">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.0" android:valueTo="1.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="br_band_mid">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.0" android:valueTo="1.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="br_band_deep">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.0" android:valueTo="1.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="br_bbr_s">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.0" android:valueTo="1.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="br_bbr">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.0" android:valueTo="1.0" android:valueType="floatType" android:startOffset="300" android:duration="200" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+
+    <!-- ══════════════════════════════════════════════════════
+         STEP 3: SHARDS FLY OUTWARD & FADE IN (300ms – 800ms)
+         Groups translate from offset → 0.0, paths fillAlpha 0.0 → 1.0
+         ══════════════════════════════════════════════════════ -->
+
+    <!-- Left shards: fly out (translate 80.0,-50.0 → 0.0,0.0) -->
+    <target android:name="grp_shards_left">
+        <aapt:attr name="android:animation">
+            <set android:ordering="together">
+                <objectAnimator
+                    android:propertyName="translateX"
+                    android:valueFrom="80.0"
+                    android:valueTo="0.0"
+                    android:valueType="floatType"
+                    android:startOffset="300"
+                    android:duration="500"
+                    android:interpolator="@android:interpolator/fast_out_slow_in" />
+                <objectAnimator
+                    android:propertyName="translateY"
+                    android:valueFrom="-50.0"
+                    android:valueTo="0.0"
+                    android:valueType="floatType"
+                    android:startOffset="300"
+                    android:duration="500"
+                    android:interpolator="@android:interpolator/fast_out_slow_in" />
+            </set>
+        </aapt:attr>
+    </target>
+
+    <target android:name="shl_black">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.0" android:valueTo="1.0" android:valueType="floatType" android:startOffset="300" android:duration="300" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="shl_red">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.0" android:valueTo="1.0" android:valueType="floatType" android:startOffset="300" android:duration="300" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="shl_spark">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.0" android:valueTo="1.0" android:valueType="floatType" android:startOffset="350" android:duration="300" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+
+    <!-- Right shards: fly out (translate -80.0,50.0 → 0.0,0.0) -->
+    <target android:name="grp_shards_right">
+        <aapt:attr name="android:animation">
+            <set android:ordering="together">
+                <objectAnimator
+                    android:propertyName="translateX"
+                    android:valueFrom="-80.0"
+                    android:valueTo="0.0"
+                    android:valueType="floatType"
+                    android:startOffset="300"
+                    android:duration="500"
+                    android:interpolator="@android:interpolator/fast_out_slow_in" />
+                <objectAnimator
+                    android:propertyName="translateY"
+                    android:valueFrom="50.0"
+                    android:valueTo="0.0"
+                    android:valueType="floatType"
+                    android:startOffset="300"
+                    android:duration="500"
+                    android:interpolator="@android:interpolator/fast_out_slow_in" />
+            </set>
+        </aapt:attr>
+    </target>
+
+    <target android:name="shr_red">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.0" android:valueTo="1.0" android:valueType="floatType" android:startOffset="300" android:duration="300" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="shr_black">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.0" android:valueTo="1.0" android:valueType="floatType" android:startOffset="300" android:duration="300" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+
+</animated-vector>

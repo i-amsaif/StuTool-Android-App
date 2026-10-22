@@ -135,7 +135,7 @@ fun SharedCropEditor(
         if (expandTrigger > 0 && viewSize.width > 0) {
             val mapping = calculateDisplayMapping(viewSize, logicalImgW, logicalImgH)
             
-            val safeInsetPx = with(density) { 6.dp.toPx() }
+            val safeInsetPx = 0f
             val safeMinX = mapping.offsetX + safeInsetPx
             val safeMaxX = mapping.offsetX + mapping.displayWidth - safeInsetPx
             val safeMinY = mapping.offsetY + safeInsetPx
@@ -330,7 +330,7 @@ fun QuadOverlay(
                                     val dragAmount = change.position - change.previousPosition
                                     touchPosition = change.position
                                     
-                                    val safeInsetPx = with(density) { 6.dp.toPx() }
+                                    val safeInsetPx = 0f
                                     val dragMapping = currentMappingState
                                     
                                     val newQuad = CropConstraintEngine.onDrag(

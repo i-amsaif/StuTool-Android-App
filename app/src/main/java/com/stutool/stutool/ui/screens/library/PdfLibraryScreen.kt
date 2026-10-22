@@ -23,6 +23,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,21 +39,60 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
+import com.stutool.stutool.domain.model.RecentDocxFile
 import com.stutool.stutool.domain.model.RecentPdf
+import com.stutool.stutool.domain.model.RecentTxtFile
+import com.stutool.stutool.domain.model.RecentXlsxFile
 import com.stutool.stutool.ui.theme.LocalGlassTokens
 import com.valentinilk.shimmer.shimmer
 import java.text.SimpleDateFormat
 import java.util.*
 
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.TableChart
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.Dispatchers
+
+private val SUPPORTED_PICKER_MIME_TYPES = arrayOf(
+    "application/pdf",
+    "text/plain",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-excel"
+)
+
+private sealed interface RecentLibraryItem {
+    val lastOpened: Long
+    val isFavorite: Boolean
+
+    data class PdfItem(val pdf: RecentPdf) : RecentLibraryItem {
+        override val lastOpened: Long get() = pdf.lastOpened
+        override val isFavorite: Boolean get() = pdf.isFavorite
+    }
+
+    data class TxtItem(val txt: RecentTxtFile) : RecentLibraryItem {
+        override val lastOpened: Long get() = txt.lastOpened
+        override val isFavorite: Boolean get() = false
+    }
+
+    data class DocxItem(val docx: RecentDocxFile) : RecentLibraryItem {
+        override val lastOpened: Long get() = docx.lastOpened
+        override val isFavorite: Boolean get() = false
+    }
+
+    data class XlsxItem(val xlsx: RecentXlsxFile) : RecentLibraryItem {
+        override val lastOpened: Long get() = xlsx.lastOpened
+        override val isFavorite: Boolean get() = false
+    }
+}
 
 @Composable
 fun PdfLibraryScreen(
@@ -60,11 +100,37 @@ fun PdfLibraryScreen(
     viewModel: PdfLibraryViewModel = viewModel()
 ) {
     val recentPdfs by viewModel.recentPdfs.collectAsState()
+    val recentTxts by viewModel.recentTxts.collectAsState()
+    val recentDocxs by viewModel.recentDocxs.collectAsState()
+    val recentXlsxs by viewModel.recentXlsxs.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val context = LocalContext.current
     val glass = LocalGlassTokens.current
     var permissionErrorDialog by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
+
+    val tutorialPrefs = remember { com.stutool.stutool.tutorial.TutorialPreferences(context) }
+    var showOptInDialog by rememberSaveable { mutableStateOf(false) }
+    var showPlayer by rememberSaveable { mutableStateOf(false) }
+    var sessionPromptHandled by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        if (!sessionPromptHandled && tutorialPrefs.shouldShowTutorialPrompt(com.stutool.stutool.tutorial.TutorialType.PDF_VIEWER)) {
+            showOptInDialog = true
+        }
+    }
+
+    val recentItems = remember(recentPdfs, recentTxts, recentDocxs, recentXlsxs) {
+        buildList {
+            recentPdfs.forEach { add(RecentLibraryItem.PdfItem(it)) }
+            recentTxts.forEach { add(RecentLibraryItem.TxtItem(it)) }
+            recentDocxs.forEach { add(RecentLibraryItem.DocxItem(it)) }
+            recentXlsxs.forEach { add(RecentLibraryItem.XlsxItem(it)) }
+        }.sortedWith(
+            compareByDescending<RecentLibraryItem> { it.isFavorite }
+                .thenByDescending { it.lastOpened }
+        )
+    }
 
     // Refresh history when screen recomposes / resurfaces
     LaunchedEffect(Unit) {
@@ -100,20 +166,72 @@ fun PdfLibraryScreen(
                 }
             }
             
-            // Strip extension for display consistency (reader ViewModel also strips it)
-            val displayName = name.substringBeforeLast(".").takeIf { it.isNotBlank() } ?: name
-            
-            viewModel.addRecentPdf(uri = it.toString(), name = displayName, size = size)
-            // Navigate to reader securely using Base64
+            val candidateFileName = if (name != "Document") {
+                name
+            } else {
+                it.lastPathSegment ?: name
+            }
+            // Strip extension for display consistency
+            val displayName = name.substringBeforeLast(".").takeIf { s -> s.isNotBlank() } ?: name
             val encodedUri = android.util.Base64.encodeToString(
                 it.toString().toByteArray(),
                 android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP
             )
-            navController.navigate("reader_screen/$encodedUri")
+            val mimeType = context.contentResolver.getType(it)
+
+            val isXlsxFile = candidateFileName.endsWith(".xlsx", ignoreCase = true) ||
+                mimeType.equals(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    ignoreCase = true
+                )
+            val isLegacyXlsFile = (!isXlsxFile && candidateFileName.endsWith(".xls", ignoreCase = true)) ||
+                (!isXlsxFile && mimeType.equals("application/vnd.ms-excel", ignoreCase = true))
+
+            val isDocxFile = !isXlsxFile && !isLegacyXlsFile && (
+                candidateFileName.endsWith(".docx", ignoreCase = true) ||
+                    mimeType.equals(
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        ignoreCase = true
+                    )
+                )
+            val isLegacyDocFile = (!isDocxFile && !isXlsxFile && !isLegacyXlsFile &&
+                candidateFileName.endsWith(".doc", ignoreCase = true)) ||
+                mimeType.equals("application/msword", ignoreCase = true)
+            val isTxtFile = !isXlsxFile && !isLegacyXlsFile && !isDocxFile && !isLegacyDocFile && (
+                (mimeType != null && mimeType.startsWith("text/", ignoreCase = true)) ||
+                    candidateFileName.endsWith(".txt", ignoreCase = true)
+                )
+
+            when {
+                isXlsxFile -> {
+                    viewModel.addRecentXlsx(uri = it.toString(), name = displayName, size = size)
+                    navController.navigate("xlsx_reader/$encodedUri")
+                }
+                isLegacyXlsFile -> {
+                    permissionErrorDialog =
+                        "Legacy Excel (.xls) binary spreadsheets are not supported.\n\n" +
+                            "Please save or export this spreadsheet as a modern .xlsx file and try again."
+                }
+                isDocxFile -> {
+                    viewModel.addRecentDocx(uri = it.toString(), name = displayName, size = size)
+                    navController.navigate("docx_reader/$encodedUri")
+                }
+                isLegacyDocFile -> {
+                    navController.navigate("docx_reader/$encodedUri")
+                }
+                isTxtFile -> {
+                    viewModel.addRecentTxt(uri = it.toString(), name = displayName, size = size)
+                    navController.navigate("txt_reader/$encodedUri")
+                }
+                else -> {
+                    viewModel.addRecentPdf(uri = it.toString(), name = displayName, size = size)
+                    navController.navigate("reader_screen/$encodedUri")
+                }
+            }
         }
     }
 
-    // â”€â”€ Permission error dialog â”€â”€
+    // ── Permission error dialog ──
     permissionErrorDialog?.let { errorMsg ->
         AlertDialog(
             onDismissRequest = { permissionErrorDialog = null },
@@ -132,13 +250,13 @@ fun PdfLibraryScreen(
         containerColor = Color.Transparent,
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { launcher.launch(arrayOf("application/pdf")) },
+                onClick = { launcher.launch(SUPPORTED_PICKER_MIME_TYPES) },
                 containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onBackground,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier
                     .padding(bottom = 96.dp) 
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add PDF", tint = MaterialTheme.colorScheme.onPrimary)
+                Icon(Icons.Default.Add, contentDescription = "Open Document", tint = MaterialTheme.colorScheme.onPrimary)
             }
         }
     ) { paddingValues ->
@@ -168,7 +286,7 @@ fun PdfLibraryScreen(
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                if (recentPdfs.isNotEmpty()) {
+                if (recentItems.isNotEmpty()) {
                     var showClearDialog by remember { mutableStateOf(false) }
                     TextButton(onClick = { showClearDialog = true }) {
                         Text("Clear All", color = MaterialTheme.colorScheme.primary)
@@ -177,7 +295,7 @@ fun PdfLibraryScreen(
                         AlertDialog(
                             onDismissRequest = { showClearDialog = false },
                             title = { Text("Clear Recent History", color = MaterialTheme.colorScheme.onBackground) },
-                            text = { Text("Are you sure you want to clear your recent PDFs history? This will not delete the actual files.", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                            text = { Text("Are you sure you want to clear your recent files history? This will not delete the actual files.", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                             confirmButton = {
                                 TextButton(onClick = { 
                                     viewModel.clearAllRecentPdfs()
@@ -208,7 +326,7 @@ fun PdfLibraryScreen(
                         RecentPdfSkeleton()
                     }
                 }
-            } else if (recentPdfs.isEmpty()) {
+            } else if (recentItems.isEmpty()) {
                 Column(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.Center,
@@ -222,7 +340,7 @@ fun PdfLibraryScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "No Recent PDFs",
+                        text = "No Recent Files",
                         color = MaterialTheme.colorScheme.onBackground,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.SemiBold
@@ -235,12 +353,12 @@ fun PdfLibraryScreen(
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                     Button(
-                        onClick = { launcher.launch(arrayOf("application/pdf")) },
+                        onClick = { launcher.launch(SUPPORTED_PICKER_MIME_TYPES) },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Open PDF")
+                        Text("Open Document")
                     }
                 }
             } else {
@@ -249,9 +367,12 @@ fun PdfLibraryScreen(
                     contentPadding = PaddingValues(bottom = 100.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    items(recentPdfs) { pdf ->
-                        RecentPdfItem(
-                            pdf = pdf,
+                    items(recentItems) { item ->
+                        when (item) {
+                            is RecentLibraryItem.PdfItem -> {
+                                val pdf = item.pdf
+                                RecentPdfItem(
+                                    pdf = pdf,
                             onClick = {
                                 coroutineScope.launch(Dispatchers.IO) {
                                     val resolvedUriString = resolveAccessibleUri(pdf, context)
@@ -352,8 +473,488 @@ fun PdfLibraryScreen(
                                     }
                                 }
                             }
+                                )
+                            }
+                            is RecentLibraryItem.TxtItem -> {
+                                val txt = item.txt
+                                RecentTxtItem(
+                                    txt = txt,
+                                    onClick = {
+                                        coroutineScope.launch(Dispatchers.IO) {
+                                            val resolvedUriString = resolveAccessibleTxtUri(txt, context)
+                                            if (resolvedUriString != null) {
+                                                viewModel.addRecentTxt(txt.uri, txt.name, txt.size, txt.localCopyPath)
+                                                val encodedUri = android.util.Base64.encodeToString(
+                                                    resolvedUriString.toByteArray(),
+                                                    android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP
+                                                )
+                                                kotlinx.coroutines.withContext(Dispatchers.Main) {
+                                                    navController.navigate("txt_reader/$encodedUri")
+                                                }
+                                            } else {
+                                                viewModel.deleteRecentTxt(txt.uri)
+                                                kotlinx.coroutines.withContext(Dispatchers.Main) {
+                                                    permissionErrorDialog =
+                                                        "\"${txt.name}\" can no longer be accessed.\n\n" +
+                                                        "The file may have been moved, deleted, or the app that " +
+                                                        "shared it has revoked access. It has been removed from your recent files."
+                                                }
+                                            }
+                                        }
+                                    },
+                                    onRemove = {
+                                        viewModel.deleteRecentTxt(txt.uri)
+                                    }
+                                )
+                            }
+                            is RecentLibraryItem.DocxItem -> {
+                                val docx = item.docx
+                                RecentDocxItem(
+                                    docx = docx,
+                                    onClick = {
+                                        coroutineScope.launch(Dispatchers.IO) {
+                                            val resolvedUriString = resolveAccessibleDocxUri(docx, context)
+                                            if (resolvedUriString != null) {
+                                                viewModel.addRecentDocx(docx.uri, docx.name, docx.size, docx.localCopyPath)
+                                                val encodedUri = android.util.Base64.encodeToString(
+                                                    resolvedUriString.toByteArray(),
+                                                    android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP
+                                                )
+                                                kotlinx.coroutines.withContext(Dispatchers.Main) {
+                                                    navController.navigate("docx_reader/$encodedUri")
+                                                }
+                                            } else {
+                                                viewModel.deleteRecentDocx(docx.uri)
+                                                kotlinx.coroutines.withContext(Dispatchers.Main) {
+                                                    permissionErrorDialog =
+                                                        "\"${docx.name}\" can no longer be accessed.\n\n" +
+                                                        "The file may have been moved, deleted, or the app that " +
+                                                        "shared it has revoked access. It has been removed from your recent files."
+                                                }
+                                            }
+                                        }
+                                    },
+                                    onRemove = {
+                                        viewModel.deleteRecentDocx(docx.uri)
+                                    }
+                                )
+                            }
+                            is RecentLibraryItem.XlsxItem -> {
+                                val xlsx = item.xlsx
+                                RecentXlsxItem(
+                                    xlsx = xlsx,
+                                    onClick = {
+                                        coroutineScope.launch(Dispatchers.IO) {
+                                            val resolvedUriString = resolveAccessibleXlsxUri(xlsx, context)
+                                            if (resolvedUriString != null) {
+                                                viewModel.addRecentXlsx(xlsx.uri, xlsx.name, xlsx.size, xlsx.localCopyPath)
+                                                val encodedUri = android.util.Base64.encodeToString(
+                                                    resolvedUriString.toByteArray(),
+                                                    android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP
+                                                )
+                                                kotlinx.coroutines.withContext(Dispatchers.Main) {
+                                                    navController.navigate("xlsx_reader/$encodedUri")
+                                                }
+                                            } else {
+                                                viewModel.deleteRecentXlsx(xlsx.uri)
+                                                kotlinx.coroutines.withContext(Dispatchers.Main) {
+                                                    permissionErrorDialog =
+                                                        "\"${xlsx.name}\" can no longer be accessed.\n\n" +
+                                                        "The file may have been moved, deleted, or the app that " +
+                                                        "shared it has revoked access. It has been removed from your recent files."
+                                                }
+                                            }
+                                        }
+                                    },
+                                    onRemove = {
+                                        viewModel.deleteRecentXlsx(xlsx.uri)
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showOptInDialog) {
+        com.stutool.stutool.tutorial.TutorialOptInDialog(
+            tutorialType = com.stutool.stutool.tutorial.TutorialType.PDF_VIEWER,
+            onWatchTutorial = {
+                showOptInDialog = false
+                sessionPromptHandled = true
+                showPlayer = true
+            },
+            onNoThanks = {
+                showOptInDialog = false
+                sessionPromptHandled = true
+                tutorialPrefs.setTutorialDeclined(com.stutool.stutool.tutorial.TutorialType.PDF_VIEWER, true)
+            },
+            onDismissRequest = {
+                showOptInDialog = false
+                sessionPromptHandled = true
+            }
+        )
+    }
+
+    if (showPlayer) {
+        com.stutool.stutool.tutorial.TutorialPlayerDialog(
+            tutorialType = com.stutool.stutool.tutorial.TutorialType.PDF_VIEWER,
+            onDismiss = { completedOrDismissedByUser ->
+                if (completedOrDismissedByUser) {
+                    tutorialPrefs.markTutorialSeen(com.stutool.stutool.tutorial.TutorialType.PDF_VIEWER)
+                }
+                showPlayer = false
+            }
+        )
+    }
+}
+
+private fun resolveAccessibleXlsxUri(xlsx: RecentXlsxFile, context: android.content.Context): String? {
+    val uri = Uri.parse(xlsx.uri)
+    if (uri.scheme == "file") {
+        val file = java.io.File(uri.path ?: return null)
+        return if (file.exists() && file.length() > 0L) xlsx.uri else fallbackToLocalXlsxCopy(xlsx)
+    }
+    return try {
+        context.contentResolver.openFileDescriptor(uri, "r")?.close()
+        xlsx.uri
+    } catch (e: SecurityException) {
+        fallbackToLocalXlsxCopy(xlsx)
+    } catch (e: Exception) {
+        fallbackToLocalXlsxCopy(xlsx)
+    }
+}
+
+private fun fallbackToLocalXlsxCopy(xlsx: RecentXlsxFile): String? {
+    val path = xlsx.localCopyPath ?: return null
+    val file = java.io.File(path)
+    return if (file.exists() && file.length() > 0L) {
+        Uri.fromFile(file).toString()
+    } else null
+}
+
+@Composable
+fun RecentXlsxItem(
+    xlsx: RecentXlsxFile,
+    onClick: () -> Unit,
+    onRemove: () -> Unit
+) {
+    val glass = LocalGlassTokens.current
+    var showMenu by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = glass.cardSurface),
+        border = BorderStroke(1.dp, glass.cardBorder),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.TableChart,
+                contentDescription = null,
+                tint = Color(0xFF107C41),
+                modifier = Modifier.size(40.dp)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = xlsx.name,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        color = Color(0xFF107C41).copy(alpha = 0.16f),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            text = "XLSX",
+                            color = Color(0xFF107C41),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = formatSize(xlsx.size),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "•",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        fontSize = 12.sp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = formatDate(xlsx.lastOpened),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "More options",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false },
+                    modifier = Modifier
+                        .background(MaterialTheme.colorScheme.surfaceContainer)
+                        .widthIn(min = 200.dp)
+                ) {
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                "Open",
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.OpenInNew,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        onClick = { showMenu = false; onClick() },
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                "Remove from Recent",
+                                color = MaterialTheme.colorScheme.error,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.DeleteOutline,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        onClick = { showMenu = false; onRemove() },
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun resolveAccessibleDocxUri(docx: RecentDocxFile, context: android.content.Context): String? {
+    val uri = Uri.parse(docx.uri)
+    if (uri.scheme == "file") {
+        val file = java.io.File(uri.path ?: return null)
+        return if (file.exists() && file.length() > 0L) docx.uri else fallbackToLocalDocxCopy(docx)
+    }
+    return try {
+        context.contentResolver.openFileDescriptor(uri, "r")?.close()
+        docx.uri
+    } catch (e: SecurityException) {
+        fallbackToLocalDocxCopy(docx)
+    } catch (e: Exception) {
+        fallbackToLocalDocxCopy(docx)
+    }
+}
+
+private fun fallbackToLocalDocxCopy(docx: RecentDocxFile): String? {
+    val path = docx.localCopyPath ?: return null
+    val file = java.io.File(path)
+    return if (file.exists() && file.length() > 0L) {
+        Uri.fromFile(file).toString()
+    } else null
+}
+
+private fun resolveAccessibleTxtUri(txt: RecentTxtFile, context: android.content.Context): String? {
+    val uri = Uri.parse(txt.uri)
+    if (uri.scheme == "file") {
+        val file = java.io.File(uri.path ?: return null)
+        return if (file.exists()) txt.uri else fallbackToLocalTxtCopy(txt)
+    }
+    return try {
+        context.contentResolver.openFileDescriptor(uri, "r")?.close()
+        txt.uri
+    } catch (e: SecurityException) {
+        fallbackToLocalTxtCopy(txt)
+    } catch (e: Exception) {
+        fallbackToLocalTxtCopy(txt)
+    }
+}
+
+private fun fallbackToLocalTxtCopy(txt: RecentTxtFile): String? {
+    val path = txt.localCopyPath ?: return null
+    val file = java.io.File(path)
+    return if (file.exists()) {
+        Uri.fromFile(file).toString()
+    } else null
+}
+
+@Composable
+fun RecentDocxItem(
+    docx: RecentDocxFile,
+    onClick: () -> Unit,
+    onRemove: () -> Unit
+) {
+    val glass = LocalGlassTokens.current
+    var showMenu by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = glass.cardSurface),
+        border = BorderStroke(1.dp, glass.cardBorder),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Description,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.size(40.dp)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = docx.name,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            text = "DOCX",
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = formatSize(docx.size),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "•",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        fontSize = 12.sp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = formatDate(docx.lastOpened),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "More options",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false },
+                    modifier = Modifier
+                        .background(MaterialTheme.colorScheme.surfaceContainer)
+                        .widthIn(min = 200.dp)
+                ) {
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                "Open",
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.OpenInNew,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        onClick = { showMenu = false; onClick() },
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                "Remove from Recent",
+                                color = MaterialTheme.colorScheme.error,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.DeleteOutline,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        onClick = { showMenu = false; onRemove() },
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)
+                    )
                 }
             }
         }
@@ -391,6 +992,145 @@ private fun fallbackToLocalCopy(pdf: RecentPdf): String? {
         // Return as file:// URI so PdfReaderScreen can decode it uniformly
         Uri.fromFile(file).toString()
     } else null
+}
+
+@Composable
+fun RecentTxtItem(
+    txt: RecentTxtFile,
+    onClick: () -> Unit,
+    onRemove: () -> Unit
+) {
+    val glass = LocalGlassTokens.current
+    var showMenu by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = glass.cardSurface),
+        border = BorderStroke(1.dp, glass.cardBorder),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Description,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.size(40.dp)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = txt.name,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            text = "TXT",
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = formatSize(txt.size),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "•",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        fontSize = 12.sp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = formatDate(txt.lastOpened),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "More options",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false },
+                    modifier = Modifier
+                        .background(MaterialTheme.colorScheme.surfaceContainer)
+                        .widthIn(min = 200.dp)
+                ) {
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                "Open",
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.OpenInNew,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        onClick = { showMenu = false; onClick() },
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                "Remove from Recent",
+                                color = MaterialTheme.colorScheme.error,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.DeleteOutline,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        onClick = { showMenu = false; onRemove() },
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable

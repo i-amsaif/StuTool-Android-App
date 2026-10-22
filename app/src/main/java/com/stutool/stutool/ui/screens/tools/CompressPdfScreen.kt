@@ -164,15 +164,15 @@ fun CompressPdfScreen(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(16.dp),
-                    containerColor = Color(0xFF2D1515),
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
                     action = {
                         TextButton(onClick = { viewModel.clearError() }) {
-                            Text("OK", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                            Text("OK", color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Bold)
                         }
                     }
                 ) {
                     errorMessage?.let { error ->
-                        Text(error, color = Color(0xFFFFCDD2))
+                        Text(error, color = MaterialTheme.colorScheme.onErrorContainer)
                     }
                 }
             }
